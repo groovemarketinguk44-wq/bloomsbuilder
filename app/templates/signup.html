@@ -90,5 +90,28 @@
     <a href="/login" class="font-medium hover:underline" style="color:#40657b;">Log in</a>
   </p>
 
+  <!-- Pricing overview -->
+  <div class="mt-8 glass p-5" style="border-radius:var(--radius-lg);">
+    <p class="text-center text-xs font-semibold uppercase tracking-wider mb-4" style="color:#94a3b8;">What you get</p>
+    <div class="grid grid-cols-3 gap-3 mb-4">
+      {% for plan_key, plan_label, plan_price, plan_colour, plan_desc in [
+        ("free","Free","Free forever","#5f9cb3","5 lessons · 10 worksheets · 3 slide outlines · 1 scheme"),
+        ("core","Core Teacher","£4.99/mo","#7c6bb5","20 lessons · 40 worksheets · 10 slide outlines · 3 schemes"),
+        ("power","Power","£14.99/mo","#d97706","Unlimited everything")
+      ] %}
+      <div class="p-3 text-center rounded-xl" style="background:rgba(255,255,255,0.4);border:1px solid rgba(255,255,255,0.5);">
+        <div class="w-2 h-2 rounded-full mx-auto mb-1.5" style="background:{{ plan_colour }};"></div>
+        <div class="text-xs font-bold mb-0.5" style="color:#2e4e61;">{{ plan_label }}</div>
+        <div class="text-xs font-semibold mb-1" style="color:{{ plan_colour }};">{{ plan_price }}</div>
+        <div class="text-xs leading-tight" style="color:#64748b;">{{ plan_desc }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    <p class="text-center text-xs" style="color:#94a3b8;">
+      Start free — upgrade any time.
+      <a href="/pricing" class="hover:underline" style="color:#5f9cb3;">Full details →</a>
+    </p>
+  </div>
+
 </div>
 {% endblock %}

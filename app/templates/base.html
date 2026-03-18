@@ -223,6 +223,12 @@
                style="{% if request.url.path == '/admin' %}background:rgba(95,156,179,0.12);color:#5f9cb3;{% else %}color:#40657b;{% endif %}">
               Admin
             </a>
+            {% else %}
+            <a href="/pricing"
+               class="px-3 py-1.5 rounded-full text-xs font-semibold transition-all hover:-translate-y-0.5"
+               style="{% if current_user.plan == 'power' %}background:linear-gradient(135deg,#d97706,#b45309);color:white;{% elif current_user.plan == 'core' %}background:linear-gradient(135deg,#7c6bb5,#5b4f99);color:white;{% else %}background:rgba(95,156,179,0.12);color:#5f9cb3;border:1px solid rgba(95,156,179,0.3);{% endif %}">
+              {{ {"free":"Free","core":"Core","power":"Power"}.get(current_user.plan, "Free") }}
+            </a>
             {% endif %}
             <span class="ml-3 text-sm border-l pl-3" style="color:#5f9cb3;border-color:rgba(95,156,179,0.2);">{{ current_user.first_name }}</span>
             <a href="/logout"
@@ -231,6 +237,11 @@
               Logout
             </a>
           {% else %}
+            <a href="/pricing"
+               class="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+               style="color:#40657b;">
+              Pricing
+            </a>
             <a href="/login"
                class="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
                style="color:#40657b;">
@@ -238,7 +249,7 @@
             </a>
             <a href="/signup"
                class="btn-primary ml-1">
-              Sign up
+              Sign up free
             </a>
           {% endif %}
         </div>
@@ -260,13 +271,16 @@
             <a href="/library" class="px-4 py-3 rounded-lg text-sm font-medium" style="color:#40657b;">Library</a>
             {% if current_user.role == 'admin' %}
             <a href="/admin" class="px-4 py-3 rounded-lg text-sm font-medium" style="color:#40657b;">Admin</a>
+            {% else %}
+            <a href="/pricing" class="px-4 py-3 rounded-lg text-sm font-medium" style="color:#40657b;">Plan &amp; Pricing</a>
             {% endif %}
             <hr style="border-color:rgba(95,156,179,0.2);">
             <span class="px-4 py-2 text-sm" style="color:#5f9cb3;">{{ current_user.first_name }}</span>
             <a href="/logout" class="px-4 py-3 rounded-lg text-sm font-medium" style="color:#dc2626;">Log out</a>
           {% else %}
+            <a href="/pricing" class="px-4 py-3 rounded-lg text-sm font-medium" style="color:#40657b;">Pricing</a>
             <a href="/login" class="px-4 py-3 rounded-lg text-sm font-medium" style="color:#40657b;">Log in</a>
-            <a href="/signup" class="btn-primary justify-center">Sign up</a>
+            <a href="/signup" class="btn-primary justify-center">Sign up free</a>
           {% endif %}
         </div>
       </div>

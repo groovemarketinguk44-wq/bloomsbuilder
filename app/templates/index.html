@@ -183,6 +183,40 @@
   </div>
 </div>
 
+<!-- Usage meter strip (non-admin users only) -->
+{% if usage_summary %}
+<div class="glass px-5 py-4 mb-6 flex flex-wrap items-center gap-x-8 gap-y-3" style="border-radius:var(--radius-md);">
+  <div class="flex items-center gap-2 flex-shrink-0">
+    <span class="text-xs font-semibold uppercase tracking-wide" style="color:#94a3b8;">This month</span>
+    <a href="/pricing" class="px-2 py-0.5 rounded-full text-xs font-semibold" style="background:{% if user_plan == 'power' %}linear-gradient(135deg,#d97706,#b45309){% elif user_plan == 'core' %}linear-gradient(135deg,#7c6bb5,#5b4f99){% else %}rgba(95,156,179,0.15){% endif %};color:{% if user_plan in ('power','core') %}white{% else %}#5f9cb3{% endif %};">
+      {{ {"free":"Free","core":"Core","power":"Power"}.get(user_plan, "Free") }}
+    </a>
+  </div>
+  {% for rtype, data in usage_summary.items() %}
+  {% set label = {"lesson":"Lessons","worksheet":"Worksheets","slides":"Slides","scheme":"Schemes"}[rtype] %}
+  <div class="flex items-center gap-2 min-w-[120px]">
+    <div class="flex-1">
+      <div class="flex justify-between text-xs mb-1" style="color:#64748b;">
+        <span>{{ label }}</span>
+        <span class="font-medium">{{ data.used }}/{{ data.cap if data.cap else "∞" }}</span>
+      </div>
+      <div class="h-1.5 rounded-full overflow-hidden" style="background:rgba(95,156,179,0.15);">
+        {% if data.cap %}
+        {% set pct = [(data.used / data.cap * 100)|int, 100]|min %}
+        <div class="h-full rounded-full" style="width:{{ pct }}%;background:{% if pct >= 100 %}#ef4444{% elif pct >= 75 %}#f59e0b{% else %}#5f9cb3{% endif %};"></div>
+        {% else %}
+        <div class="h-full rounded-full" style="width:5%;background:#5f9cb3;"></div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+  {% if user_plan != 'power' %}
+  <a href="/pricing" class="ml-auto text-xs font-semibold hover:underline flex-shrink-0" style="color:#5f9cb3;">Upgrade →</a>
+  {% endif %}
+</div>
+{% endif %}
+
 <!-- Step 2: Generation form (hidden until type selected) -->
 <div id="generation-form-container" class="hidden">
   <h2 class="text-sm font-semibold uppercase tracking-wider mb-4" style="color:#5f9cb3;">

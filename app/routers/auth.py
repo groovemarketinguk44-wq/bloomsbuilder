@@ -190,3 +190,21 @@ async def admin_toggle_user(user_id: int, request: Request, db: Session = Depend
         user.is_active = not user.is_active
         db.commit()
     return RedirectResponse("/admin", status_code=303)
+
+
+@router.post("/admin/users/{user_id}/plan")
+async def admin_set_plan(
+    user_id: int, request: Request,
+    plan: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    current_user = get_user_from_cookie(request, db)
+    if not current_user or current_user.role != "admin":
+        return RedirectResponse("/login", status_code=303)
+    if plan not in ("free", "core", "power"):
+        return RedirectResponse("/admin", status_code=303)
+    user = db.query(User).filter(User.id == user_id).first()
+    if user:
+        user.plan = plan
+        db.commit()
+    return RedirectResponse("/admin", status_code=303)

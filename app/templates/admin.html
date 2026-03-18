@@ -21,6 +21,7 @@
         <th class="px-5 py-3 text-left">Levels</th>
         <th class="px-5 py-3 text-left">Verified</th>
         <th class="px-5 py-3 text-left">Status</th>
+        <th class="px-5 py-3 text-left">Plan</th>
         <th class="px-5 py-3 text-left">Joined</th>
         <th class="px-5 py-3 text-left">Actions</th>
       </tr>
@@ -55,6 +56,17 @@
           {% else %}
           <span class="px-2 py-0.5 rounded-full text-xs font-medium" style="background:rgba(100,116,139,0.1);color:#64748b;">Inactive</span>
           {% endif %}
+        </td>
+        <td class="px-5 py-4">
+          <form method="post" action="/admin/users/{{ teacher.id }}/plan">
+            <select name="plan" onchange="this.form.submit()"
+                    class="text-xs px-2 py-1 rounded-lg border"
+                    style="background:transparent;border-color:rgba(95,156,179,0.25);color:#40657b;cursor:pointer;">
+              {% for pval, plabel in [("free","Free"),("core","Core"),("power","Power")] %}
+              <option value="{{ pval }}" {% if (teacher.plan or 'free') == pval %}selected{% endif %}>{{ plabel }}</option>
+              {% endfor %}
+            </select>
+          </form>
         </td>
         <td class="px-5 py-4 text-xs" style="color:rgba(95,156,179,0.6);">{{ teacher.created_at.strftime('%d %b %Y') if teacher.created_at else '—' }}</td>
         <td class="px-5 py-4">

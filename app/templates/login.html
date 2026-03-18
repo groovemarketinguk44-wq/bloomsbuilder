@@ -49,8 +49,29 @@
 
   <p class="text-center text-sm mt-6" style="color:#5f9cb3;">
     Don't have an account?
-    <a href="/signup" class="font-medium hover:underline" style="color:#40657b;">Sign up</a>
+    <a href="/signup" class="font-medium hover:underline" style="color:#40657b;">Sign up free</a>
   </p>
+
+  <!-- Pricing teaser -->
+  <div class="mt-10">
+    <p class="text-center text-xs font-semibold uppercase tracking-wider mb-4" style="color:#94a3b8;">Plans available</p>
+    <div class="grid grid-cols-3 gap-3">
+      {% for plan_key, plan_label, plan_price, plan_colour in [
+        ("free","Free","Free","#5f9cb3"),
+        ("core","Core","£4.99/mo","#7c6bb5"),
+        ("power","Power","£14.99/mo","#d97706")
+      ] %}
+      <div class="glass p-4 text-center" style="border-radius:var(--radius-md);">
+        <div class="w-2 h-2 rounded-full mx-auto mb-2" style="background:{{ plan_colour }};"></div>
+        <div class="text-xs font-bold mb-0.5" style="color:#2e4e61;">{{ plan_label }}</div>
+        <div class="text-xs" style="color:{{ plan_colour }};">{{ plan_price }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    <p class="text-center text-xs mt-3">
+      <a href="/pricing" class="hover:underline" style="color:#5f9cb3;">See full plan details →</a>
+    </p>
+  </div>
 
 </div>
 {% endblock %}

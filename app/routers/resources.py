@@ -21,6 +21,10 @@ from app.models import Resource, ResourceVersion
 from app.services.ai_generator import GENERATORS
 from app.services.export_service import export_pdf, export_docx, export_pptx
 from app.auth_utils import get_user_from_cookie
+from app.plans import (
+    PLAN_LIMITS, PLAN_NAMES, PLAN_PRICES, PLAN_COLOURS,
+    is_at_limit, get_usage_summary,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +47,10 @@ def _base_ctx(request: Request, current_user=None) -> dict:
         "resource_type_labels": RESOURCE_TYPE_LABELS,
         "key_stages": KEY_STAGES,
         "current_user": current_user,
+        "plan_names": PLAN_NAMES,
+        "plan_prices": PLAN_PRICES,
+        "plan_colours": PLAN_COLOURS,
+        "plan_limits": PLAN_LIMITS,
     }
 
 
@@ -59,18 +67,15 @@ async def homepage(request: Request, db: Session = Depends(get_db)):
     ctx = _base_ctx(request, user)
     ctx["notice"] = notice
 
-    # Compute locked_types for unverified users
+    # Compute which types are at their monthly plan limit
     locked_types: list[str] = []
-    if not user.is_school_verified and user.role != "admin":
+    if user.role != "admin":
         for rtype in RESOURCE_TYPE_LABELS:
-            count = (
-                db.query(Resource)
-                .filter(Resource.user_id == user.id, Resource.type == rtype)
-                .count()
-            )
-            if count >= 1:
+            if is_at_limit(db, user, rtype):
                 locked_types.append(rtype)
     ctx["locked_types"] = locked_types
+    ctx["usage_summary"] = get_usage_summary(db, user) if user.role != "admin" else {}
+    ctx["user_plan"] = getattr(user, "plan", "free") or "free"
 
     return templates.TemplateResponse("index.html", ctx)
 
@@ -96,16 +101,12 @@ async def generate_resource(
         response.headers["HX-Redirect"] = "/login"
         return response
 
-    # Unverified users are limited to 1 resource per type
-    if not user.is_school_verified and user.role != "admin":
-        existing_count = (
-            db.query(Resource)
-            .filter(Resource.user_id == user.id, Resource.type == resource_type)
-            .count()
-        )
-        if existing_count >= 1:
-            type_label = RESOURCE_TYPE_LABELS.get(resource_type, resource_type)
-            locked_html = f"""
+    # Check monthly plan limits
+    if user.role != "admin" and is_at_limit(db, user, resource_type):
+        type_label = RESOURCE_TYPE_LABELS.get(resource_type, resource_type)
+        plan = getattr(user, "plan", "free") or "free"
+        cap = PLAN_LIMITS.get(plan, PLAN_LIMITS["free"]).get(resource_type, 0)
+        locked_html = f"""
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -124,20 +125,25 @@ async def generate_resource(
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m0 0v2m0-2h2m-2 0H9m3-4V9m0 0a3 3 0 100-6 3 3 0 000 6z"/>
       </svg>
     </div>
-    <h1 class="text-2xl font-bold mb-2" style="color:#2e4e61;">{type_label} Locked</h1>
-    <p class="text-sm mb-6" style="color:#40657b;">
-      Unverified accounts can create <strong>1 resource per type</strong>.
-      You've already created a {type_label}.
-      Verify your school email to unlock unlimited access.
+    <h1 class="text-2xl font-bold mb-2" style="color:#2e4e61;">Monthly limit reached</h1>
+    <p class="text-sm mb-2" style="color:#40657b;">
+      You've used all <strong>{cap} {type_label}{"s" if cap != 1 else ""}</strong> included in your
+      <strong>{PLAN_NAMES.get(plan, plan)}</strong> plan this month.
     </p>
-    <a href="/" style="display:inline-block;background:linear-gradient(135deg,#5f9cb3,#40657b);color:white;padding:0.625rem 1.5rem;border-radius:8px;font-weight:600;font-size:0.875rem;text-decoration:none;box-shadow:0 4px 14px rgba(95,156,179,0.35);">
-      Back to Home
-    </a>
+    <p class="text-sm mb-6" style="color:#5f9cb3;">Upgrade your plan to generate more.</p>
+    <div class="flex gap-3 justify-center flex-wrap">
+      <a href="/pricing" style="display:inline-block;background:linear-gradient(135deg,#5f9cb3,#40657b);color:white;padding:0.625rem 1.5rem;border-radius:8px;font-weight:600;font-size:0.875rem;text-decoration:none;box-shadow:0 4px 14px rgba(95,156,179,0.35);">
+        View Plans
+      </a>
+      <a href="/" style="display:inline-block;background:rgba(255,255,255,0.6);color:#40657b;padding:0.625rem 1.5rem;border-radius:8px;font-weight:600;font-size:0.875rem;text-decoration:none;border:1px solid rgba(95,156,179,0.3);">
+        Back to Home
+      </a>
+    </div>
   </div>
 </body>
 </html>
 """
-            return HTMLResponse(content=locked_html, status_code=200)
+        return HTMLResponse(content=locked_html, status_code=200)
 
     if resource_type not in GENERATORS:
         raise HTTPException(status_code=422, detail=f"Unknown resource type: {resource_type}")
@@ -507,3 +513,20 @@ async def restore_version(
         db.commit()
 
     return {"ok": True}
+
+
+# ---------------------------------------------------------------------------
+# Pricing page
+# ---------------------------------------------------------------------------
+
+@router.get("/pricing", response_class=HTMLResponse)
+async def pricing_page(request: Request, db: Session = Depends(get_db)):
+    user = get_user_from_cookie(request, db)
+    ctx = _base_ctx(request, user)
+    if user and user.role != "admin":
+        ctx["user_plan"] = getattr(user, "plan", "free") or "free"
+        ctx["usage_summary"] = get_usage_summary(db, user)
+    else:
+        ctx["user_plan"] = None
+        ctx["usage_summary"] = {}
+    return templates.TemplateResponse("pricing.html", ctx)
