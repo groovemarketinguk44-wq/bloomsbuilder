@@ -120,7 +120,7 @@
     border-radius: 4px;
     transition: color 0.15s, background 0.15s;
     flex-shrink: 0;
-    opacity: 0;
+    opacity: 0.3;
     transition: opacity 0.15s, color 0.15s, background 0.15s;
   }
   .draggable-section:hover .btn-delete-section,
@@ -434,6 +434,25 @@
     </h2>
     <div class="space-y-3" id="lesson-sections-list">
       {% for section in data.get('sections', []) %}
+      {% if section.get('type') == 'image' %}
+      <div class="draggable-section mb-4" draggable="true" data-type="image-section">
+        <div class="section-drag-row">
+          <span class="drag-handle mt-4">{% for i in range(6) %}<span></span>{% endfor %}</span>
+          <div class="section-body glass p-4 prose-section" style="border-radius:var(--radius-lg);">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-semibold uppercase tracking-wider" style="color:#5f9cb3;">Image</span>
+              <button class="btn-delete-section" onclick="deleteSection(this)" title="Delete image">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+              </button>
+            </div>
+            <img src="{{ section.get('src', '') }}" data-field="image-src" class="max-w-full rounded-lg mb-2" style="max-height:400px;object-fit:contain;">
+            <p class="text-xs mt-2"><span contenteditable="true" data-field="image-caption" style="color:#40657b;">{{ section.get('caption', '') }}</span></p>
+          </div>
+        </div>
+      </div>
+      {% else %}
       <div class="draggable-section" draggable="true" data-type="lesson-section">
         <div class="section-drag-row">
           <span class="drag-handle mt-4">{% for i in range(6) %}<span></span>{% endfor %}</span>
@@ -466,9 +485,11 @@
           </div>
         </div>
       </div>
+      {% endif %}
       {% endfor %}
     </div>
     <button class="btn-add-section" onclick="addLessonSection()">+ Add section</button>
+    <button class="btn-add-item" onclick="addImage('lesson-sections-list')">🖼 Add image</button>
   </div>
 
   <!-- Resources & Differentiation grid -->
@@ -570,6 +591,25 @@
 
   <div id="worksheet-sections-list">
     {% for section in data.get('sections', []) %}
+    {% if section.get('type') == 'image' %}
+    <div class="draggable-section mb-4" draggable="true" data-type="image-section">
+      <div class="section-drag-row">
+        <span class="drag-handle mt-4">{% for i in range(6) %}<span></span>{% endfor %}</span>
+        <div class="section-body glass p-4 prose-section" style="border-radius:var(--radius-lg);">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-semibold uppercase tracking-wider" style="color:#5f9cb3;">Image</span>
+            <button class="btn-delete-section" onclick="deleteSection(this)" title="Delete image">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+          <img src="{{ section.get('src', '') }}" data-field="image-src" class="max-w-full rounded-lg mb-2" style="max-height:400px;object-fit:contain;">
+          <p class="text-xs mt-2"><span contenteditable="true" data-field="image-caption" style="color:#40657b;">{{ section.get('caption', '') }}</span></p>
+        </div>
+      </div>
+    </div>
+    {% else %}
     <div class="draggable-section mb-4" draggable="true" data-type="worksheet-section">
       <div class="section-drag-row">
         <span class="drag-handle mt-5">{% for i in range(6) %}<span></span>{% endfor %}</span>
@@ -619,9 +659,11 @@
         </div>
       </div>
     </div>
+    {% endif %}
     {% endfor %}
   </div>
   <button class="btn-add-section" onclick="addWorksheetSection()">+ Add section</button>
+  <button class="btn-add-item" onclick="addImage('worksheet-sections-list')">🖼 Add image</button>
 
 
 <!-- ═══════════════════════════════════════════════════════════════════════ -->
@@ -636,6 +678,25 @@
 
   <div class="space-y-4" id="scheme-weeks-list">
     {% for week in data.get('weeks', []) %}
+    {% if week.get('type') == 'image' %}
+    <div class="draggable-section mb-4" draggable="true" data-type="image-section">
+      <div class="section-drag-row">
+        <span class="drag-handle mt-4">{% for i in range(6) %}<span></span>{% endfor %}</span>
+        <div class="section-body glass p-4 prose-section" style="border-radius:var(--radius-lg);">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-semibold uppercase tracking-wider" style="color:#5f9cb3;">Image</span>
+            <button class="btn-delete-section" onclick="deleteSection(this)" title="Delete image">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+          <img src="{{ week.get('src', '') }}" data-field="image-src" class="max-w-full rounded-lg mb-2" style="max-height:400px;object-fit:contain;">
+          <p class="text-xs mt-2"><span contenteditable="true" data-field="image-caption" style="color:#40657b;">{{ week.get('caption', '') }}</span></p>
+        </div>
+      </div>
+    </div>
+    {% else %}
     <div class="draggable-section glass overflow-hidden prose-section" draggable="true"
          style="border-radius:var(--radius-lg);" data-type="scheme-week">
       <div class="section-drag-row">
@@ -729,9 +790,11 @@
         </div>
       </div>
     </div>
+    {% endif %}
     {% endfor %}
   </div>
   <button class="btn-add-section" onclick="addSchemeWeek()">+ Add week</button>
+  <button class="btn-add-item" onclick="addImage('scheme-weeks-list')">🖼 Add image</button>
 
 
 <!-- ═══════════════════════════════════════════════════════════════════════ -->
@@ -741,6 +804,25 @@
 
   <div class="grid md:grid-cols-2 gap-4" id="slides-list">
     {% for slide in data.get('slides', []) %}
+    {% if slide.get('type') == 'image' %}
+    <div class="draggable-section mb-4" draggable="true" data-type="image-section">
+      <div class="section-drag-row">
+        <span class="drag-handle mt-4">{% for i in range(6) %}<span></span>{% endfor %}</span>
+        <div class="section-body glass p-4 prose-section" style="border-radius:var(--radius-lg);">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-semibold uppercase tracking-wider" style="color:#5f9cb3;">Image</span>
+            <button class="btn-delete-section" onclick="deleteSection(this)" title="Delete image">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+          <img src="{{ slide.get('src', '') }}" data-field="image-src" class="max-w-full rounded-lg mb-2" style="max-height:400px;object-fit:contain;">
+          <p class="text-xs mt-2"><span contenteditable="true" data-field="image-caption" style="color:#40657b;">{{ slide.get('caption', '') }}</span></p>
+        </div>
+      </div>
+    </div>
+    {% else %}
     <div class="draggable-section glass overflow-hidden prose-section" draggable="true"
          style="border-radius:var(--radius-lg);" data-type="slide">
       <div class="section-drag-row h-full">
@@ -793,9 +875,11 @@
         </div>
       </div>
     </div>
+    {% endif %}
     {% endfor %}
   </div>
   <button class="btn-add-section" onclick="addSlide()">+ Add slide</button>
+  <button class="btn-add-item" onclick="addImage('slides-list')">🖼 Add image</button>
 
 {% endif %}
 
@@ -815,6 +899,8 @@
 <div id="history-overlay"
      onclick="toggleHistory()"
      style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.15);z-index:199;"></div>
+
+<input type="file" id="global-img-input" accept="image/*" style="display:none" onchange="handleImageUpload(this)">
 
 {% endblock %}
 
@@ -911,7 +997,13 @@
 
     // Sections
     out.sections = [];
-    document.querySelectorAll('#lesson-sections-list [data-type="lesson-section"]').forEach(sec => {
+    document.querySelectorAll('#lesson-sections-list > .draggable-section').forEach(sec => {
+      if (sec.dataset.type === 'image-section') {
+        const img = sec.querySelector('[data-field="image-src"]');
+        const cap = sec.querySelector('[data-field="image-caption"]');
+        out.sections.push({ type: 'image', src: img ? img.src : '', caption: cap ? getText(cap) : '' });
+        return;
+      }
       out.sections.push({
         title: getText(sec.querySelector('[data-field="section-title"]')),
         duration: getText(sec.querySelector('[data-field="section-duration"]')),
@@ -963,7 +1055,13 @@
 
     // Sections
     out.sections = [];
-    document.querySelectorAll('#worksheet-sections-list [data-type="worksheet-section"]').forEach((sec, si) => {
+    document.querySelectorAll('#worksheet-sections-list > .draggable-section').forEach((sec, si) => {
+      if (sec.dataset.type === 'image-section') {
+        const img = sec.querySelector('[data-field="image-src"]');
+        const cap = sec.querySelector('[data-field="image-caption"]');
+        out.sections.push({ type: 'image', src: img ? img.src : '', caption: cap ? getText(cap) : '' });
+        return;
+      }
       const questions = [];
       sec.querySelectorAll('[data-type="question"]').forEach((q, qi) => {
         questions.push({
@@ -992,7 +1090,13 @@
     if (overviewEl) out.overview = getText(overviewEl);
 
     out.weeks = [];
-    document.querySelectorAll('#scheme-weeks-list [data-type="scheme-week"]').forEach(weekEl => {
+    document.querySelectorAll('#scheme-weeks-list > .draggable-section').forEach(weekEl => {
+      if (weekEl.dataset.type === 'image-section') {
+        const img = weekEl.querySelector('[data-field="image-src"]');
+        const cap = weekEl.querySelector('[data-field="image-caption"]');
+        out.weeks.push({ type: 'image', src: img ? img.src : '', caption: cap ? getText(cap) : '' });
+        return;
+      }
       const objectives = [];
       weekEl.querySelectorAll('.week-objectives [data-field="week-obj"]').forEach(el => {
         const t = getText(el); if (t) objectives.push(t);
@@ -1024,7 +1128,13 @@
     if (titleEl) out.title = getText(titleEl);
 
     out.slides = [];
-    document.querySelectorAll('#slides-list [data-type="slide"]').forEach((slideEl, idx) => {
+    document.querySelectorAll('#slides-list > .draggable-section').forEach((slideEl, idx) => {
+      if (slideEl.dataset.type === 'image-section') {
+        const img = slideEl.querySelector('[data-field="image-src"]');
+        const cap = slideEl.querySelector('[data-field="image-caption"]');
+        out.slides.push({ type: 'image', src: img ? img.src : '', caption: cap ? getText(cap) : '' });
+        return;
+      }
       const bullet_points = [];
       slideEl.querySelectorAll('.slide-bullets [data-field="slide-bullet"]').forEach(el => {
         const t = getText(el); if (t) bullet_points.push(t);
@@ -1496,6 +1606,51 @@
     bulletList.appendChild(li);
     markDirty();
     li.querySelector('[contenteditable]').focus();
+  }
+
+  // ── Image upload ────────────────────────────────────────────────────────
+  let _imgTarget = null;
+
+  function addImage(containerId) {
+    _imgTarget = containerId ? document.getElementById(containerId) : null;
+    document.getElementById('global-img-input').click();
+  }
+
+  function handleImageUpload(input) {
+    if (!input.files || !input.files[0]) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const container = _imgTarget
+        || document.getElementById('worksheet-sections-list')
+        || document.getElementById('lesson-sections-list')
+        || document.getElementById('scheme-weeks-list')
+        || document.getElementById('slides-list');
+      if (!container) return;
+      const div = document.createElement('div');
+      div.className = 'draggable-section mb-4';
+      div.draggable = true;
+      div.dataset.type = 'image-section';
+      div.innerHTML = `
+        <div class="section-drag-row">
+          <span class="drag-handle mt-4">${'<span></span>'.repeat(6)}</span>
+          <div class="section-body glass p-4 prose-section" style="border-radius:var(--radius-lg);">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-semibold uppercase tracking-wider" style="color:#5f9cb3;">Image</span>
+              <button class="btn-delete-section" onclick="deleteSection(this)" title="Delete image">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+              </button>
+            </div>
+            <img src="${e.target.result}" data-field="image-src" class="max-w-full rounded-lg mb-2" style="max-height:400px;object-fit:contain;">
+            <p class="text-xs mt-2"><span contenteditable="true" data-field="image-caption" style="color:#40657b;">Add a caption (optional)</span></p>
+          </div>
+        </div>`;
+      container.appendChild(div);
+      markDirty();
+      input.value = '';
+    };
+    reader.readAsDataURL(input.files[0]);
   }
 
   function addSlide() {
