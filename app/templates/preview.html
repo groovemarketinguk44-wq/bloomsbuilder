@@ -225,10 +225,36 @@
   </div>
   {% endif %}
 
+  {% if data.get('formula_box') %}
+  <div class="glass p-5 mb-5 prose-section" style="border-radius:var(--radius-md);border-left:4px solid #5f9cb3;">
+    <p class="text-xs font-semibold uppercase tracking-wider mb-2" style="color:#5f9cb3;">Key Formula</p>
+    <p class="font-mono text-sm font-semibold" style="color:#2e4e61;">{{ data.get('formula_box') }}</p>
+  </div>
+  {% endif %}
+
+  {% if data.get('worked_example') %}
+  {% set we = data.get('worked_example') %}
+  <div class="glass p-5 mb-5 prose-section" style="border-radius:var(--radius-md);border-left:4px solid #40657b;">
+    <p class="text-xs font-semibold uppercase tracking-wider mb-2" style="color:#40657b;">Worked Example</p>
+    <p class="text-sm font-semibold mb-3" style="color:#2e4e61;">{{ we.get('question', '') }}</p>
+    <ol class="space-y-1.5">
+      {% for step in we.get('steps', []) %}
+      <li class="text-sm flex gap-2" style="color:#40657b;">
+        <span class="font-semibold flex-shrink-0" style="color:#5f9cb3;">{{ loop.index }}.</span>
+        {{ step }}
+      </li>
+      {% endfor %}
+    </ol>
+  </div>
+  {% endif %}
+
   {% for section in data.get('sections', []) %}
   <div class="glass p-6 mb-4 prose-section" style="border-radius:var(--radius-lg);">
-    <div class="flex items-center justify-between mb-4">
+    <div class="mb-4">
       <h2 class="font-semibold" style="color:#2e4e61;">{{ section.get('title', '') }}</h2>
+      {% if section.get('instructions') %}
+      <p class="text-xs mt-1" style="color:#5f9cb3;">{{ section.get('instructions') }}</p>
+      {% endif %}
     </div>
     <div class="space-y-5">
       {% for q in section.get('questions', []) %}
@@ -242,12 +268,9 @@
             {{ q.get('marks', 1) }} mark{% if q.get('marks', 1) != 1 %}s{% endif %}
           </span>
         </div>
-        <!-- Answer lines -->
-        <div class="space-y-1.5 mt-3">
-          {% for i in range(q.get('answer_lines', 3)) %}
-          <div class="h-7 border-b border-dashed" style="border-color:rgba(95,156,179,0.2);"></div>
-          {% endfor %}
-        </div>
+        <!-- Working space or answer lines -->
+        {% set lines = q.get('working_space', q.get('answer_lines', 3)) %}
+        <div class="mt-3 rounded-lg" style="min-height:{{ lines * 28 }}px;border:1px dashed rgba(95,156,179,0.25);background:rgba(255,255,255,0.4);"></div>
       </div>
       {% endfor %}
     </div>
