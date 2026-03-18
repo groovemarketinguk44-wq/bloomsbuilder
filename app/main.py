@@ -36,9 +36,25 @@ def _seed_admin():
         db.close()
 
 
+def _run_migrations():
+    """Add any missing columns to existing tables (safe to run repeatedly)."""
+    with engine.connect() as conn:
+        # Add user_id to resources if it was created before auth was added
+        try:
+            conn.execute(
+                __import__("sqlalchemy").text(
+                    "ALTER TABLE resources ADD COLUMN user_id INTEGER"
+                )
+            )
+            conn.commit()
+        except Exception:
+            pass  # Column already exists — that's fine
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
+    _run_migrations()
     _seed_admin()
     yield
 
