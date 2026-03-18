@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}{{ resource.title }} – Resource Builder{% endblock %}
+{% block title %}{{ resource.title }} – BloomsBuilder{% endblock %}
 
 {% block head %}
 <style>
@@ -19,20 +19,20 @@
 <div class="no-print flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
   <div class="flex items-center gap-2">
     <a href="/library"
-       class="inline-flex items-center gap-1.5 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">
+       class="btn-ghost">
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
       </svg>
       Library
     </a>
-    <span class="text-gray-300">/</span>
-    <span class="text-sm text-gray-500">{{ resource_type_labels.get(resource.type, resource.type) }}</span>
+    <span style="color:rgba(95,156,179,0.4);">/</span>
+    <span class="text-sm" style="color:#5f9cb3;">{{ resource_type_labels.get(resource.type, resource.type) }}</span>
   </div>
 
   <!-- Export buttons -->
   <div class="flex flex-wrap items-center gap-2">
     <button onclick="window.print()"
-            class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+            class="btn-ghost">
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
               d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
@@ -41,7 +41,8 @@
     </button>
 
     <a href="/export/{{ resource.id }}/pdf"
-       class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors">
+       class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg transition-colors"
+       style="color:#ef4444;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:var(--radius-sm);">
       <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
         <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clip-rule="evenodd"/>
       </svg>
@@ -50,7 +51,8 @@
 
     {% if resource.type in ['lesson', 'worksheet', 'scheme'] %}
     <a href="/export/{{ resource.id }}/docx"
-       class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors">
+       class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg transition-colors"
+       style="color:#5f9cb3;background:rgba(95,156,179,0.1);border:1px solid rgba(95,156,179,0.25);border-radius:var(--radius-sm);">
       <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
         <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clip-rule="evenodd"/>
       </svg>
@@ -60,7 +62,8 @@
 
     {% if resource.type == 'slides' %}
     <a href="/export/{{ resource.id }}/pptx"
-       class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-orange-600 bg-orange-50 border border-orange-200 rounded-lg hover:bg-orange-100 transition-colors">
+       class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg transition-colors"
+       style="color:#f97316;background:rgba(249,115,22,0.1);border:1px solid rgba(249,115,22,0.25);border-radius:var(--radius-sm);">
       <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
         <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clip-rule="evenodd"/>
       </svg>
@@ -71,16 +74,17 @@
 </div>
 
 <!-- Resource header card -->
-<div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6">
+<div class="glass p-6 mb-6" style="border-radius:var(--radius-lg);">
   <div class="flex flex-wrap items-start justify-between gap-4">
     <div>
       <div class="flex items-center gap-2 mb-2">
-        <span class="px-2.5 py-1 rounded-md bg-gray-100 text-gray-600 text-xs font-medium uppercase tracking-wide">
+        <span class="px-2.5 py-1 rounded-md text-xs font-medium uppercase tracking-wide"
+              style="background:rgba(95,156,179,0.12);color:#40657b;">
           {{ resource_type_labels.get(resource.type, resource.type) }}
         </span>
       </div>
-      <h1 class="text-2xl font-bold text-gray-900 mb-1">{{ data.get('title', resource.title) }}</h1>
-      <div class="flex flex-wrap items-center gap-4 text-sm text-gray-500">
+      <h1 class="text-2xl font-bold mb-1" style="color:#2e4e61;">{{ data.get('title', resource.title) }}</h1>
+      <div class="flex flex-wrap items-center gap-4 text-sm" style="color:#5f9cb3;">
         <span class="flex items-center gap-1.5">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -108,11 +112,12 @@
           {{ data.get('duration') }}
         </span>
         {% endif %}
-        <span class="text-gray-400 text-xs">Generated {{ resource.created_at.strftime('%d %b %Y, %H:%M') }}</span>
+        <span class="text-xs" style="color:rgba(95,156,179,0.6);">Generated {{ resource.created_at.strftime('%d %b %Y, %H:%M') }}</span>
       </div>
     </div>
   </div>
 </div>
+
 
 <!-- ═══════════════════════════════════════════════════════════════════════ -->
 <!--  LESSON PLAN                                                            -->
@@ -120,15 +125,15 @@
 {% if resource.type == 'lesson' %}
 
   <!-- Learning Objectives -->
-  <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-4 prose-section">
-    <h2 class="text-base font-semibold text-gray-800 mb-3 flex items-center gap-2">
-      <span class="w-6 h-6 rounded bg-blue-100 flex items-center justify-center text-blue-600 text-xs font-bold">1</span>
+  <div class="glass p-6 mb-4 prose-section" style="border-radius:var(--radius-lg);">
+    <h2 class="text-base font-semibold mb-3 flex items-center gap-2" style="color:#2e4e61;">
+      <span class="w-6 h-6 rounded flex items-center justify-center text-xs font-bold" style="background:rgba(59,130,246,0.12);color:#3b82f6;">1</span>
       Learning Objectives
     </h2>
     <ul class="space-y-2">
       {% for obj in data.get('learning_objectives', []) %}
-      <li class="flex items-start gap-2 text-sm text-gray-700">
-        <svg class="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+      <li class="flex items-start gap-2 text-sm" style="color:#40657b;">
+        <svg class="w-4 h-4 mt-0.5 flex-shrink-0" style="color:#5f9cb3;" fill="currentColor" viewBox="0 0 20 20">
           <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
         </svg>
         {{ obj }}
@@ -139,28 +144,28 @@
 
   <!-- Lesson Sections -->
   <div class="mb-4">
-    <h2 class="text-base font-semibold text-gray-800 mb-3 flex items-center gap-2">
-      <span class="w-6 h-6 rounded bg-blue-100 flex items-center justify-center text-blue-600 text-xs font-bold">2</span>
+    <h2 class="text-base font-semibold mb-3 flex items-center gap-2" style="color:#2e4e61;">
+      <span class="w-6 h-6 rounded flex items-center justify-center text-xs font-bold" style="background:rgba(59,130,246,0.12);color:#3b82f6;">2</span>
       Lesson Sections
     </h2>
     <div class="space-y-3">
       {% for section in data.get('sections', []) %}
-      <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5 prose-section">
+      <div class="glass p-5 prose-section" style="border-radius:var(--radius-md);">
         <div class="flex items-center justify-between mb-3">
           <div class="flex items-center gap-2">
-            <h3 class="font-semibold text-gray-900 text-sm">{{ section.get('title', '') }}</h3>
+            <h3 class="font-semibold text-sm" style="color:#2e4e61;">{{ section.get('title', '') }}</h3>
             {% if section.get('duration') %}
-            <span class="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{{ section.get('duration') }}</span>
+            <span class="text-xs px-2 py-0.5 rounded-full" style="color:#5f9cb3;background:rgba(95,156,179,0.1);">{{ section.get('duration') }}</span>
             {% endif %}
           </div>
         </div>
-        <p class="text-sm text-gray-700 mb-3">{{ section.get('activity', '') }}</p>
+        <p class="text-sm mb-3" style="color:#40657b;">{{ section.get('activity', '') }}</p>
         {% if section.get('teacher_notes') %}
-        <div class="flex items-start gap-2 bg-amber-50 rounded-lg p-3 border border-amber-100">
-          <svg class="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+        <div class="flex items-start gap-2 rounded-lg p-3" style="background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.2);">
+          <svg class="w-4 h-4 flex-shrink-0 mt-0.5" style="color:#d97706;" fill="currentColor" viewBox="0 0 20 20">
             <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
           </svg>
-          <p class="text-xs text-amber-700"><strong>Teacher notes:</strong> {{ section.get('teacher_notes', '') }}</p>
+          <p class="text-xs" style="color:#92400e;"><strong>Teacher notes:</strong> {{ section.get('teacher_notes', '') }}</p>
         </div>
         {% endif %}
       </div>
@@ -170,30 +175,30 @@
 
   <!-- Resources & Differentiation grid -->
   <div class="grid md:grid-cols-2 gap-4 mb-4">
-    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-      <h2 class="text-sm font-semibold text-gray-800 mb-3">Resources Needed</h2>
+    <div class="glass p-5" style="border-radius:var(--radius-md);">
+      <h2 class="text-sm font-semibold mb-3" style="color:#2e4e61;">Resources Needed</h2>
       <ul class="space-y-1.5">
         {% for r in data.get('resources_needed', []) %}
-        <li class="flex items-center gap-2 text-sm text-gray-700">
-          <span class="w-1.5 h-1.5 rounded-full bg-blue-400 flex-shrink-0"></span>
+        <li class="flex items-center gap-2 text-sm" style="color:#40657b;">
+          <span class="w-1.5 h-1.5 rounded-full flex-shrink-0" style="background:#5f9cb3;"></span>
           {{ r }}
         </li>
         {% endfor %}
       </ul>
     </div>
 
-    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-      <h2 class="text-sm font-semibold text-gray-800 mb-3">Differentiation</h2>
+    <div class="glass p-5" style="border-radius:var(--radius-md);">
+      <h2 class="text-sm font-semibold mb-3" style="color:#2e4e61;">Differentiation</h2>
       {% set diff = data.get('differentiation', {}) %}
       {% if diff %}
       <div class="space-y-2">
         <div class="flex items-start gap-2">
-          <span class="text-xs font-semibold px-2 py-0.5 rounded bg-green-100 text-green-700 flex-shrink-0 mt-0.5">Support</span>
-          <p class="text-sm text-gray-700">{{ diff.get('support', '') }}</p>
+          <span class="text-xs font-semibold px-2 py-0.5 rounded flex-shrink-0 mt-0.5" style="background:rgba(34,197,94,0.1);color:#16a34a;">Support</span>
+          <p class="text-sm" style="color:#40657b;">{{ diff.get('support', '') }}</p>
         </div>
         <div class="flex items-start gap-2">
-          <span class="text-xs font-semibold px-2 py-0.5 rounded bg-purple-100 text-purple-700 flex-shrink-0 mt-0.5">Extension</span>
-          <p class="text-sm text-gray-700">{{ diff.get('extension', '') }}</p>
+          <span class="text-xs font-semibold px-2 py-0.5 rounded flex-shrink-0 mt-0.5" style="background:rgba(168,85,247,0.1);color:#9333ea;">Extension</span>
+          <p class="text-sm" style="color:#40657b;">{{ diff.get('extension', '') }}</p>
         </div>
       </div>
       {% endif %}
@@ -202,9 +207,9 @@
 
   <!-- Assessment -->
   {% if data.get('assessment') %}
-  <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5 prose-section">
-    <h2 class="text-sm font-semibold text-gray-800 mb-2">Assessment</h2>
-    <p class="text-sm text-gray-700">{{ data.get('assessment') }}</p>
+  <div class="glass p-5 prose-section" style="border-radius:var(--radius-md);">
+    <h2 class="text-sm font-semibold mb-2" style="color:#2e4e61;">Assessment</h2>
+    <p class="text-sm" style="color:#40657b;">{{ data.get('assessment') }}</p>
   </div>
   {% endif %}
 
@@ -215,32 +220,32 @@
 {% elif resource.type == 'worksheet' %}
 
   {% if data.get('instructions') %}
-  <div class="bg-blue-50 rounded-xl border border-blue-100 p-4 mb-5">
-    <p class="text-sm text-blue-800"><strong>Instructions:</strong> {{ data.get('instructions') }}</p>
+  <div class="rounded-xl p-4 mb-5" style="background:rgba(95,156,179,0.1);border:1px solid rgba(95,156,179,0.2);">
+    <p class="text-sm" style="color:#40657b;"><strong>Instructions:</strong> {{ data.get('instructions') }}</p>
   </div>
   {% endif %}
 
   {% for section in data.get('sections', []) %}
-  <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-4 prose-section">
+  <div class="glass p-6 mb-4 prose-section" style="border-radius:var(--radius-lg);">
     <div class="flex items-center justify-between mb-4">
-      <h2 class="font-semibold text-gray-900">{{ section.get('title', '') }}</h2>
+      <h2 class="font-semibold" style="color:#2e4e61;">{{ section.get('title', '') }}</h2>
     </div>
     <div class="space-y-5">
       {% for q in section.get('questions', []) %}
-      <div class="border-b border-gray-100 pb-4 last:border-0 last:pb-0">
+      <div class="pb-4 last:pb-0" style="border-bottom:1px solid rgba(95,156,179,0.1);">
         <div class="flex items-start justify-between gap-3 mb-2">
-          <p class="text-sm text-gray-800">
-            <span class="font-semibold text-gray-900">Q{{ q.get('number', '') }}.</span>
+          <p class="text-sm" style="color:#2e4e61;">
+            <span class="font-semibold">Q{{ q.get('number', '') }}.</span>
             {{ q.get('question', '') }}
           </p>
-          <span class="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full whitespace-nowrap flex-shrink-0">
+          <span class="text-xs px-2 py-0.5 rounded-full whitespace-nowrap flex-shrink-0" style="color:#5f9cb3;background:rgba(95,156,179,0.1);">
             {{ q.get('marks', 1) }} mark{% if q.get('marks', 1) != 1 %}s{% endif %}
           </span>
         </div>
         <!-- Answer lines -->
         <div class="space-y-1.5 mt-3">
           {% for i in range(q.get('answer_lines', 3)) %}
-          <div class="h-7 border-b border-dashed border-gray-300"></div>
+          <div class="h-7 border-b border-dashed" style="border-color:rgba(95,156,179,0.2);"></div>
           {% endfor %}
         </div>
       </div>
@@ -256,56 +261,56 @@
 {% elif resource.type == 'scheme' %}
 
   {% if data.get('overview') %}
-  <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mb-5">
-    <p class="text-sm text-gray-700">{{ data.get('overview') }}</p>
+  <div class="glass p-5 mb-5" style="border-radius:var(--radius-md);">
+    <p class="text-sm" style="color:#40657b;">{{ data.get('overview') }}</p>
   </div>
   {% endif %}
 
   <div class="space-y-4">
     {% for week in data.get('weeks', []) %}
-    <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden prose-section">
+    <div class="glass overflow-hidden prose-section" style="border-radius:var(--radius-lg);">
       <!-- Week header -->
-      <div class="flex items-center justify-between px-5 py-3 bg-gray-50 border-b border-gray-200">
+      <div class="flex items-center justify-between px-5 py-3" style="background:rgba(95,156,179,0.08);border-bottom:1px solid rgba(95,156,179,0.12);">
         <div class="flex items-center gap-3">
-          <span class="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center text-sm font-bold">
+          <span class="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold" style="background:rgba(95,156,179,0.15);color:#40657b;">
             {{ week.get('week', '') }}
           </span>
-          <h3 class="font-semibold text-gray-900 text-sm">{{ week.get('topic', '') }}</h3>
+          <h3 class="font-semibold text-sm" style="color:#2e4e61;">{{ week.get('topic', '') }}</h3>
         </div>
       </div>
       <!-- Week body -->
       <div class="p-5 grid md:grid-cols-4 gap-4 text-sm">
         <div>
-          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Objectives</p>
+          <p class="text-xs font-semibold uppercase tracking-wider mb-2" style="color:#5f9cb3;opacity:0.7;">Objectives</p>
           <ul class="space-y-1">
             {% for obj in week.get('objectives', []) %}
-            <li class="flex items-start gap-1.5 text-gray-700">
-              <span class="w-1 h-1 rounded-full bg-blue-400 flex-shrink-0 mt-1.5"></span>{{ obj }}
+            <li class="flex items-start gap-1.5" style="color:#40657b;">
+              <span class="w-1 h-1 rounded-full flex-shrink-0 mt-1.5" style="background:#5f9cb3;"></span>{{ obj }}
             </li>
             {% endfor %}
           </ul>
         </div>
         <div>
-          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Key Activities</p>
+          <p class="text-xs font-semibold uppercase tracking-wider mb-2" style="color:#5f9cb3;opacity:0.7;">Key Activities</p>
           <ul class="space-y-1">
             {% for act in week.get('key_activities', []) %}
-            <li class="flex items-start gap-1.5 text-gray-700">
-              <span class="w-1 h-1 rounded-full bg-green-400 flex-shrink-0 mt-1.5"></span>{{ act }}
+            <li class="flex items-start gap-1.5" style="color:#40657b;">
+              <span class="w-1 h-1 rounded-full flex-shrink-0 mt-1.5" style="background:#22c55e;"></span>{{ act }}
             </li>
             {% endfor %}
           </ul>
         </div>
         <div>
-          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Resources</p>
+          <p class="text-xs font-semibold uppercase tracking-wider mb-2" style="color:#5f9cb3;opacity:0.7;">Resources</p>
           <ul class="space-y-1">
             {% for res in week.get('resources', []) %}
-            <li class="text-gray-600 text-xs">{{ res }}</li>
+            <li class="text-xs" style="color:#5f9cb3;">{{ res }}</li>
             {% endfor %}
           </ul>
         </div>
         <div>
-          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Assessment</p>
-          <p class="text-gray-700 text-xs">{{ week.get('assessment', '') }}</p>
+          <p class="text-xs font-semibold uppercase tracking-wider mb-2" style="color:#5f9cb3;opacity:0.7;">Assessment</p>
+          <p class="text-xs" style="color:#40657b;">{{ week.get('assessment', '') }}</p>
         </div>
       </div>
     </div>
@@ -320,35 +325,35 @@
 
   <div class="grid md:grid-cols-2 gap-4">
     {% for slide in data.get('slides', []) %}
-    <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden prose-section">
+    <div class="glass overflow-hidden prose-section" style="border-radius:var(--radius-lg);">
       <!-- Slide header -->
-      <div class="flex items-center justify-between px-4 py-2.5 bg-gray-50 border-b border-gray-100">
+      <div class="flex items-center justify-between px-4 py-2.5" style="background:rgba(95,156,179,0.08);border-bottom:1px solid rgba(95,156,179,0.1);">
         <div class="flex items-center gap-2">
-          <span class="w-6 h-6 rounded bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center">
+          <span class="w-6 h-6 rounded text-xs font-bold flex items-center justify-center" style="background:rgba(95,156,179,0.15);color:#40657b;">
             {{ slide.get('number', '') }}
           </span>
-          <span class="text-xs font-medium text-gray-600 uppercase tracking-wide">
+          <span class="text-xs font-medium uppercase tracking-wide" style="color:#5f9cb3;">
             {{ slide.get('content_type', 'content') }}
           </span>
         </div>
       </div>
       <!-- Slide body -->
       <div class="p-4">
-        <h3 class="font-semibold text-gray-900 text-sm mb-2">{{ slide.get('title', '') }}</h3>
+        <h3 class="font-semibold text-sm mb-2" style="color:#2e4e61;">{{ slide.get('title', '') }}</h3>
         {% if slide.get('bullet_points') %}
         <ul class="space-y-1 mb-3">
           {% for bullet in slide.get('bullet_points', []) %}
-          <li class="flex items-start gap-2 text-sm text-gray-700">
-            <span class="w-1 h-1 rounded-full bg-blue-400 flex-shrink-0 mt-1.5"></span>
+          <li class="flex items-start gap-2 text-sm" style="color:#40657b;">
+            <span class="w-1 h-1 rounded-full flex-shrink-0 mt-1.5" style="background:#5f9cb3;"></span>
             {{ bullet }}
           </li>
           {% endfor %}
         </ul>
         {% endif %}
         {% if slide.get('speaker_notes') %}
-        <div class="mt-2 pt-2 border-t border-gray-100">
-          <p class="text-xs text-gray-400 italic">
-            <span class="font-medium not-italic text-gray-500">Notes:</span>
+        <div class="mt-2 pt-2" style="border-top:1px solid rgba(95,156,179,0.1);">
+          <p class="text-xs italic" style="color:rgba(95,156,179,0.7);">
+            <span class="font-medium not-italic" style="color:#5f9cb3;">Notes:</span>
             {{ slide.get('speaker_notes') }}
           </p>
         </div>

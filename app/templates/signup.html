@@ -1,66 +1,68 @@
 {% extends "base.html" %}
-{% block title %}Sign up – Resource Builder{% endblock %}
+{% block title %}Sign up – BloomsBuilder{% endblock %}
 
 {% block content %}
 <div class="max-w-lg mx-auto mt-12">
 
   <div class="text-center mb-8">
-    <h1 class="text-3xl font-bold text-gray-900 mb-2">Create your account</h1>
-    <p class="text-gray-500 text-sm">Free for teachers. No card required.</p>
+    <h1 class="text-3xl font-bold mb-2" style="color:#2e4e61;">Create your account</h1>
+    <p class="text-sm" style="color:#5f9cb3;">Free for teachers. No card required.</p>
   </div>
 
   {% if error %}
-  <div class="mb-5 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">
+  <div class="mb-5 rounded-xl px-4 py-3 text-sm" style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);color:#b91c1c;">
     {{ error }}
   </div>
   {% endif %}
 
-  <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-8">
+  <div class="glass p-8" style="border-radius:var(--radius-lg);">
     <form method="post" action="/signup" class="space-y-5">
 
       <div class="grid grid-cols-2 gap-4">
         <div>
-          <label for="first_name" class="block text-sm font-medium text-gray-700 mb-1.5">First name</label>
+          <label for="first_name" class="block text-sm font-medium mb-1.5" style="color:#40657b;">First name</label>
           <input type="text" id="first_name" name="first_name" required
                  value="{{ values.first_name if values else '' }}"
-                 class="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm
-                        focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow" />
+                 class="w-full px-4 py-2.5 rounded-lg text-sm transition-shadow"
+                 style="background:rgba(255,255,255,0.7);border:1px solid rgba(95,156,179,0.25);border-radius:var(--radius-sm);" />
         </div>
         <div>
-          <label for="last_name" class="block text-sm font-medium text-gray-700 mb-1.5">Last name</label>
+          <label for="last_name" class="block text-sm font-medium mb-1.5" style="color:#40657b;">Last name</label>
           <input type="text" id="last_name" name="last_name" required
                  value="{{ values.last_name if values else '' }}"
-                 class="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm
-                        focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow" />
+                 class="w-full px-4 py-2.5 rounded-lg text-sm transition-shadow"
+                 style="background:rgba(255,255,255,0.7);border:1px solid rgba(95,156,179,0.25);border-radius:var(--radius-sm);" />
         </div>
       </div>
 
       <div>
-        <label for="email" class="block text-sm font-medium text-gray-700 mb-1.5">Email address</label>
+        <label for="email" class="block text-sm font-medium mb-1.5" style="color:#40657b;">Email address</label>
         <input type="email" id="email" name="email" required autocomplete="email"
                value="{{ values.email if values else '' }}"
-               class="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm
-                      focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow" />
-        <p class="mt-1 text-xs text-gray-400">Use your school email (e.g. .sch.uk or .ac.uk) to get verified instantly.</p>
+               class="w-full px-4 py-2.5 rounded-lg text-sm transition-shadow"
+               style="background:rgba(255,255,255,0.7);border:1px solid rgba(95,156,179,0.25);border-radius:var(--radius-sm);" />
+        <p class="mt-1 text-xs" style="color:rgba(95,156,179,0.7);">Use your school email (e.g. .sch.uk or .ac.uk) to get verified instantly.</p>
       </div>
 
       <div>
-        <label for="school" class="block text-sm font-medium text-gray-700 mb-1.5">School / Institution</label>
+        <label for="school" class="block text-sm font-medium mb-1.5" style="color:#40657b;">School / Institution</label>
         <input type="text" id="school" name="school" required
                placeholder="e.g. Westfield Academy"
                value="{{ values.school if values else '' }}"
-               class="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm
-                      focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-                      placeholder:text-gray-300 transition-shadow" />
+               class="w-full px-4 py-2.5 rounded-lg text-sm transition-shadow placeholder:text-gray-300"
+               style="background:rgba(255,255,255,0.7);border:1px solid rgba(95,156,179,0.25);border-radius:var(--radius-sm);" />
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">Year groups / levels you teach</label>
+        <label class="block text-sm font-medium mb-2" style="color:#40657b;">Year groups / levels you teach</label>
         <div class="grid grid-cols-2 gap-2">
           {% for ks in key_stages %}
-          <label class="flex items-center gap-2.5 px-3 py-2 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 cursor-pointer transition-colors text-sm">
+          <label class="flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors text-sm"
+                 style="border:1px solid rgba(95,156,179,0.2);color:#40657b;"
+                 onmouseover="this.style.borderColor='#5f9cb3';this.style.background='rgba(95,156,179,0.07)';"
+                 onmouseout="this.style.borderColor='rgba(95,156,179,0.2)';this.style.background='transparent';">
             <input type="checkbox" name="key_stages" value="{{ ks }}"
-                   class="rounded border-gray-300 text-blue-500 focus:ring-blue-500" />
+                   class="rounded" style="accent-color:#5f9cb3;" />
             {{ ks }}
           </label>
           {% endfor %}
@@ -68,24 +70,24 @@
       </div>
 
       <div>
-        <label for="password" class="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
+        <label for="password" class="block text-sm font-medium mb-1.5" style="color:#40657b;">Password</label>
         <input type="password" id="password" name="password" required autocomplete="new-password" minlength="4"
-               class="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm
-                      focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow" />
+               class="w-full px-4 py-2.5 rounded-lg text-sm transition-shadow"
+               style="background:rgba(255,255,255,0.7);border:1px solid rgba(95,156,179,0.25);border-radius:var(--radius-sm);" />
       </div>
 
       <button type="submit"
-              class="w-full py-2.5 bg-blue-500 hover:bg-blue-600 text-white text-sm font-semibold
-                     rounded-lg shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+              class="w-full py-2.5 text-white text-sm font-semibold rounded-lg transition-all"
+              style="background:linear-gradient(135deg,#5f9cb3,#40657b);border-radius:var(--radius-sm);box-shadow:0 4px 14px rgba(95,156,179,0.35);">
         Create account
       </button>
 
     </form>
   </div>
 
-  <p class="text-center text-sm text-gray-500 mt-6">
+  <p class="text-center text-sm mt-6" style="color:#5f9cb3;">
     Already have an account?
-    <a href="/login" class="text-blue-600 font-medium hover:underline">Log in</a>
+    <a href="/login" class="font-medium hover:underline" style="color:#40657b;">Log in</a>
   </p>
 
 </div>

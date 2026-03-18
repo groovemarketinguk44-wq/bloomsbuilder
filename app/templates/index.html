@@ -1,22 +1,65 @@
 {% extends "base.html" %}
 
-{% block title %}Generate – Resource Builder{% endblock %}
+{% block title %}Generate – BloomsBuilder{% endblock %}
+
+{% block head %}
+<style>
+  .type-card {
+    position: relative;
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+  }
+  .type-card:not(.locked-card):hover {
+    transform: scale(1.025);
+    box-shadow: 0 12px 40px rgba(64,101,123,0.18), 0 2px 8px rgba(95,156,179,0.14);
+  }
+  .type-card.selected-card {
+    border-color: #5f9cb3 !important;
+    background: rgba(95,156,179,0.10) !important;
+    box-shadow: 0 0 0 2px rgba(95,156,179,0.35), 0 8px 32px rgba(64,101,123,0.14) !important;
+  }
+  .locked-card {
+    cursor: not-allowed;
+    opacity: 0.62;
+    filter: grayscale(0.3);
+  }
+  .lock-overlay {
+    position: absolute;
+    inset: 0;
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background: rgba(255,255,255,0.55);
+    backdrop-filter: blur(3px);
+    pointer-events: none;
+  }
+</style>
+{% endblock %}
 
 {% block content %}
 
 <!-- Notice for unverified school email -->
 {% if notice == 'unverified' %}
-<div class="mb-6 bg-amber-50 border border-amber-200 rounded-xl px-5 py-4 text-sm text-amber-800">
+<div class="mb-6 rounded-xl px-5 py-4 text-sm" style="background:rgba(251,191,36,0.12);border:1px solid rgba(251,191,36,0.3);color:#92400e;">
   <strong>Welcome!</strong> We couldn't verify your school email address. Your account may need further verification — but you can get started right away.
+</div>
+{% endif %}
+
+{% if locked_types and locked_types | length > 0 %}
+<div class="mb-6 rounded-xl px-5 py-4 text-sm" style="background:rgba(95,156,179,0.10);border:1px solid rgba(95,156,179,0.25);color:#40657b;">
+  <strong>Some resource types are locked.</strong>
+  Unverified accounts can create 1 resource per type. Verify your school email to unlock unlimited access.
 </div>
 {% endif %}
 
 <!-- Hero -->
 <div class="text-center mb-10">
-  <h1 class="text-4xl font-bold text-gray-900 mb-3">
+  <h1 class="text-4xl font-bold mb-3" style="color:#2e4e61;">
     Build Educational Resources
   </h1>
-  <p class="text-lg text-gray-500 max-w-2xl mx-auto">
+  <p class="text-lg max-w-2xl mx-auto" style="color:#40657b;">
     Generate lesson plans, worksheets, schemes of work,
     and slide outlines — ready to download and use in the classroom.
   </p>
@@ -24,77 +67,117 @@
 
 <!-- Step 1: Resource type selector -->
 <div class="mb-8">
-  <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
+  <h2 class="text-sm font-semibold uppercase tracking-wider mb-4" style="color:#5f9cb3;">
     Step 1 — Choose a resource type
   </h2>
   <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="type-cards">
 
     <!-- Lesson Plan -->
+    {% set is_locked = 'lesson' in locked_types %}
     <button type="button" id="card-lesson"
-            onclick="selectType('lesson')"
-            class="type-card group relative flex flex-col items-center gap-3 p-6 bg-white rounded-xl border-2 border-gray-200
-                   hover:border-blue-400 hover:shadow-md transition-all duration-150 text-left">
-      <div class="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center group-hover:bg-blue-100 transition-colors">
-        <svg class="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            {% if not is_locked %}onclick="selectType('lesson')"{% endif %}
+            class="type-card{% if is_locked %} locked-card{% endif %} group flex flex-col items-center gap-3 p-6 text-left"
+            style="background:var(--glass-bg);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);border:2px solid var(--glass-border);border-radius:var(--radius-lg);box-shadow:var(--glass-shadow);"
+            {% if is_locked %}title="Verify your school email to unlock"{% endif %}>
+      <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background:rgba(59,130,246,0.1);">
+        <svg class="w-6 h-6" style="color:#3b82f6;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
         </svg>
       </div>
       <div>
-        <p class="font-semibold text-gray-800 text-sm">Lesson Plan</p>
-        <p class="text-xs text-gray-400 mt-0.5">60-min structured lesson with activities</p>
+        <p class="font-semibold text-sm" style="color:#2e4e61;">Lesson Plan</p>
+        <p class="text-xs mt-0.5" style="color:#5f9cb3;">60-min structured lesson with activities</p>
       </div>
+      {% if is_locked %}
+      <div class="lock-overlay">
+        <svg class="w-7 h-7" style="color:#40657b;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+        </svg>
+        <span class="text-xs font-semibold text-center px-2" style="color:#40657b;">Verify your school email to unlock</span>
+      </div>
+      {% endif %}
     </button>
 
     <!-- Worksheet -->
+    {% set is_locked = 'worksheet' in locked_types %}
     <button type="button" id="card-worksheet"
-            onclick="selectType('worksheet')"
-            class="type-card group relative flex flex-col items-center gap-3 p-6 bg-white rounded-xl border-2 border-gray-200
-                   hover:border-blue-400 hover:shadow-md transition-all duration-150 text-left">
-      <div class="w-12 h-12 rounded-xl bg-green-50 flex items-center justify-center group-hover:bg-green-100 transition-colors">
-        <svg class="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            {% if not is_locked %}onclick="selectType('worksheet')"{% endif %}
+            class="type-card{% if is_locked %} locked-card{% endif %} group flex flex-col items-center gap-3 p-6 text-left"
+            style="background:var(--glass-bg);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);border:2px solid var(--glass-border);border-radius:var(--radius-lg);box-shadow:var(--glass-shadow);"
+            {% if is_locked %}title="Verify your school email to unlock"{% endif %}>
+      <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background:rgba(34,197,94,0.1);">
+        <svg class="w-6 h-6" style="color:#22c55e;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
         </svg>
       </div>
       <div>
-        <p class="font-semibold text-gray-800 text-sm">Worksheet</p>
-        <p class="text-xs text-gray-400 mt-0.5">Tiered questions with answer spaces</p>
+        <p class="font-semibold text-sm" style="color:#2e4e61;">Worksheet</p>
+        <p class="text-xs mt-0.5" style="color:#5f9cb3;">Tiered questions with answer spaces</p>
       </div>
+      {% if is_locked %}
+      <div class="lock-overlay">
+        <svg class="w-7 h-7" style="color:#40657b;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+        </svg>
+        <span class="text-xs font-semibold text-center px-2" style="color:#40657b;">Verify your school email to unlock</span>
+      </div>
+      {% endif %}
     </button>
 
     <!-- Scheme of Work -->
+    {% set is_locked = 'scheme' in locked_types %}
     <button type="button" id="card-scheme"
-            onclick="selectType('scheme')"
-            class="type-card group relative flex flex-col items-center gap-3 p-6 bg-white rounded-xl border-2 border-gray-200
-                   hover:border-blue-400 hover:shadow-md transition-all duration-150 text-left">
-      <div class="w-12 h-12 rounded-xl bg-purple-50 flex items-center justify-center group-hover:bg-purple-100 transition-colors">
-        <svg class="w-6 h-6 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            {% if not is_locked %}onclick="selectType('scheme')"{% endif %}
+            class="type-card{% if is_locked %} locked-card{% endif %} group flex flex-col items-center gap-3 p-6 text-left"
+            style="background:var(--glass-bg);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);border:2px solid var(--glass-border);border-radius:var(--radius-lg);box-shadow:var(--glass-shadow);"
+            {% if is_locked %}title="Verify your school email to unlock"{% endif %}>
+      <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background:rgba(168,85,247,0.1);">
+        <svg class="w-6 h-6" style="color:#a855f7;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
         </svg>
       </div>
       <div>
-        <p class="font-semibold text-gray-800 text-sm">Scheme of Work</p>
-        <p class="text-xs text-gray-400 mt-0.5">6-week curriculum plan with progression</p>
+        <p class="font-semibold text-sm" style="color:#2e4e61;">Scheme of Work</p>
+        <p class="text-xs mt-0.5" style="color:#5f9cb3;">6-week curriculum plan with progression</p>
       </div>
+      {% if is_locked %}
+      <div class="lock-overlay">
+        <svg class="w-7 h-7" style="color:#40657b;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+        </svg>
+        <span class="text-xs font-semibold text-center px-2" style="color:#40657b;">Verify your school email to unlock</span>
+      </div>
+      {% endif %}
     </button>
 
     <!-- Slide Outline -->
+    {% set is_locked = 'slides' in locked_types %}
     <button type="button" id="card-slides"
-            onclick="selectType('slides')"
-            class="type-card group relative flex flex-col items-center gap-3 p-6 bg-white rounded-xl border-2 border-gray-200
-                   hover:border-blue-400 hover:shadow-md transition-all duration-150 text-left">
-      <div class="w-12 h-12 rounded-xl bg-orange-50 flex items-center justify-center group-hover:bg-orange-100 transition-colors">
-        <svg class="w-6 h-6 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            {% if not is_locked %}onclick="selectType('slides')"{% endif %}
+            class="type-card{% if is_locked %} locked-card{% endif %} group flex flex-col items-center gap-3 p-6 text-left"
+            style="background:var(--glass-bg);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);border:2px solid var(--glass-border);border-radius:var(--radius-lg);box-shadow:var(--glass-shadow);"
+            {% if is_locked %}title="Verify your school email to unlock"{% endif %}>
+      <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background:rgba(249,115,22,0.1);">
+        <svg class="w-6 h-6" style="color:#f97316;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/>
         </svg>
       </div>
       <div>
-        <p class="font-semibold text-gray-800 text-sm">Slide Outline</p>
-        <p class="text-xs text-gray-400 mt-0.5">10-slide presentation with speaker notes</p>
+        <p class="font-semibold text-sm" style="color:#2e4e61;">Slide Outline</p>
+        <p class="text-xs mt-0.5" style="color:#5f9cb3;">10-slide presentation with speaker notes</p>
       </div>
+      {% if is_locked %}
+      <div class="lock-overlay">
+        <svg class="w-7 h-7" style="color:#40657b;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+        </svg>
+        <span class="text-xs font-semibold text-center px-2" style="color:#40657b;">Verify your school email to unlock</span>
+      </div>
+      {% endif %}
     </button>
 
   </div>
@@ -102,11 +185,11 @@
 
 <!-- Step 2: Generation form (hidden until type selected) -->
 <div id="generation-form-container" class="hidden">
-  <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
+  <h2 class="text-sm font-semibold uppercase tracking-wider mb-4" style="color:#5f9cb3;">
     Step 2 — Fill in the details
   </h2>
 
-  <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 md:p-8">
+  <div class="glass p-6 md:p-8" style="border-radius:var(--radius-lg);">
     <form id="generate-form"
           hx-post="/generate"
           hx-target="body"
@@ -119,25 +202,23 @@
 
         <!-- Subject -->
         <div>
-          <label for="subject" class="block text-sm font-medium text-gray-700 mb-1.5">
-            Subject <span class="text-red-400">*</span>
+          <label for="subject" class="block text-sm font-medium mb-1.5" style="color:#40657b;">
+            Subject <span style="color:#ef4444;">*</span>
           </label>
           <input type="text" id="subject" name="subject" required
                  placeholder="e.g. Biology, History, Mathematics"
-                 class="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm
-                        focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-                        placeholder:text-gray-300 transition-shadow" />
+                 class="w-full px-4 py-2.5 rounded-lg text-sm transition-shadow placeholder:text-gray-300"
+                 style="background:rgba(255,255,255,0.7);border:1px solid rgba(95,156,179,0.25);border-radius:var(--radius-sm);" />
         </div>
 
         <!-- Key Stage -->
         <div>
-          <label for="key_stage" class="block text-sm font-medium text-gray-700 mb-1.5">
-            Key Stage <span class="text-red-400">*</span>
+          <label for="key_stage" class="block text-sm font-medium mb-1.5" style="color:#40657b;">
+            Key Stage <span style="color:#ef4444;">*</span>
           </label>
           <select id="key_stage" name="key_stage" required
-                  class="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm
-                         focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-                         bg-white transition-shadow appearance-none">
+                  class="w-full px-4 py-2.5 rounded-lg text-sm transition-shadow appearance-none"
+                  style="background:rgba(255,255,255,0.7);border:1px solid rgba(95,156,179,0.25);border-radius:var(--radius-sm);">
             <option value="" disabled selected>Select key stage…</option>
             {% for ks in key_stages %}
             <option value="{{ ks }}">{{ ks }}</option>
@@ -147,37 +228,32 @@
 
         <!-- Topic -->
         <div class="md:col-span-2">
-          <label for="topic" class="block text-sm font-medium text-gray-700 mb-1.5">
-            Topic <span class="text-red-400">*</span>
+          <label for="topic" class="block text-sm font-medium mb-1.5" style="color:#40657b;">
+            Topic <span style="color:#ef4444;">*</span>
           </label>
           <input type="text" id="topic" name="topic" required
                  placeholder="e.g. Photosynthesis, World War II, Quadratic Equations"
-                 class="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm
-                        focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-                        placeholder:text-gray-300 transition-shadow" />
+                 class="w-full px-4 py-2.5 rounded-lg text-sm transition-shadow placeholder:text-gray-300"
+                 style="background:rgba(255,255,255,0.7);border:1px solid rgba(95,156,179,0.25);border-radius:var(--radius-sm);" />
         </div>
 
         <!-- Additional instructions -->
         <div class="md:col-span-2">
-          <label for="additional_instructions" class="block text-sm font-medium text-gray-700 mb-1.5">
+          <label for="additional_instructions" class="block text-sm font-medium mb-1.5" style="color:#40657b;">
             Additional Instructions
-            <span class="text-gray-400 font-normal">(optional)</span>
+            <span class="font-normal" style="color:#5f9cb3;">(optional)</span>
           </label>
           <textarea id="additional_instructions" name="additional_instructions" rows="3"
                     placeholder="e.g. Include a group activity, focus on real-world applications, suitable for mixed-ability class…"
-                    class="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm
-                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-                           placeholder:text-gray-300 resize-none transition-shadow"></textarea>
+                    class="w-full px-4 py-2.5 rounded-lg text-sm resize-none transition-shadow placeholder:text-gray-300"
+                    style="background:rgba(255,255,255,0.7);border:1px solid rgba(95,156,179,0.25);border-radius:var(--radius-sm);"></textarea>
         </div>
 
       </div>
 
       <!-- Submit -->
       <div class="mt-8 flex justify-end">
-        <button type="submit"
-                class="inline-flex items-center gap-2 px-6 py-3 bg-blue-500 hover:bg-blue-600
-                       text-white text-sm font-semibold rounded-lg shadow-sm
-                       transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+        <button type="submit" class="btn-primary">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M13 10V3L4 14h7v7l9-11h-7z"/>
@@ -199,15 +275,15 @@
     document.getElementById('resource_type').value = type;
 
     // Reset all cards
-    document.querySelectorAll('.type-card').forEach(function(card) {
-      card.classList.remove('border-blue-500', 'shadow-md', 'bg-blue-50');
-      card.classList.add('border-gray-200');
+    document.querySelectorAll('.type-card:not(.locked-card)').forEach(function(card) {
+      card.classList.remove('selected-card');
     });
 
     // Highlight selected card
     const selected = document.getElementById('card-' + type);
-    selected.classList.add('border-blue-500', 'shadow-md', 'bg-blue-50');
-    selected.classList.remove('border-gray-200');
+    if (selected && !selected.classList.contains('locked-card')) {
+      selected.classList.add('selected-card');
+    }
 
     // Show form
     const container = document.getElementById('generation-form-container');

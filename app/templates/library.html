@@ -1,20 +1,19 @@
 {% extends "base.html" %}
 
-{% block title %}Library – Resource Builder{% endblock %}
+{% block title %}Library – BloomsBuilder{% endblock %}
 
 {% block content %}
 
 <!-- Header -->
 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
   <div>
-    <h1 class="text-2xl font-bold text-gray-900">Resource Library</h1>
-    <p class="text-sm text-gray-500 mt-1">
+    <h1 class="text-2xl font-bold" style="color:#2e4e61;">Resource Library</h1>
+    <p class="text-sm mt-1" style="color:#5f9cb3;">
       {{ resources | length }} resource{% if resources | length != 1 %}s{% endif %}
       {% if filter_type %}filtered by <strong>{{ resource_type_labels.get(filter_type, filter_type) }}</strong>{% endif %}
     </p>
   </div>
-  <a href="/"
-     class="inline-flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-semibold rounded-lg shadow-sm transition-colors">
+  <a href="/" class="btn-primary">
     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
     </svg>
@@ -25,14 +24,14 @@
 <!-- Filter bar -->
 <div class="flex flex-wrap gap-2 mb-6">
   <a href="/library"
-     class="px-4 py-2 rounded-lg text-sm font-medium border transition-colors
-            {% if not filter_type %}bg-gray-900 text-white border-gray-900{% else %}bg-white text-gray-600 border-gray-200 hover:border-gray-400{% endif %}">
+     class="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+     style="{% if not filter_type %}background:#2e4e61;color:white;{% else %}background:rgba(255,255,255,0.55);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.6);color:#40657b;{% endif %}border-radius:var(--radius-sm);">
     All types
   </a>
   {% for type_key, type_label in resource_type_labels.items() %}
   <a href="/library?filter_type={{ type_key }}"
-     class="px-4 py-2 rounded-lg text-sm font-medium border transition-colors
-            {% if filter_type == type_key %}bg-blue-500 text-white border-blue-500{% else %}bg-white text-gray-600 border-gray-200 hover:border-blue-300 hover:text-blue-600{% endif %}">
+     class="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+     style="{% if filter_type == type_key %}background:linear-gradient(135deg,#5f9cb3,#40657b);color:white;{% else %}background:rgba(255,255,255,0.55);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.6);color:#40657b;{% endif %}border-radius:var(--radius-sm);">
     {{ type_label }}
   </a>
   {% endfor %}
@@ -43,37 +42,39 @@
 <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4" id="resource-grid">
   {% for resource in resources %}
   <div id="resource-card-{{ resource.id }}"
-       class="group bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-gray-300 transition-all duration-150 flex flex-col">
+       class="group flex flex-col transition-all duration-150"
+       style="background:var(--glass-bg);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);border:1px solid var(--glass-border);border-radius:var(--radius-lg);box-shadow:var(--glass-shadow);">
 
     <!-- Card top accent -->
-    <div class="h-1 rounded-t-xl
-      {% if resource.type == 'lesson' %}bg-blue-400
-      {% elif resource.type == 'worksheet' %}bg-green-400
-      {% elif resource.type == 'scheme' %}bg-purple-400
-      {% elif resource.type == 'slides' %}bg-orange-400
-      {% endif %}">
+    <div class="h-1"
+         style="border-radius:var(--radius-lg) var(--radius-lg) 0 0;
+         {% if resource.type == 'lesson' %}background:#3b82f6;
+         {% elif resource.type == 'worksheet' %}background:#22c55e;
+         {% elif resource.type == 'scheme' %}background:#a855f7;
+         {% elif resource.type == 'slides' %}background:#f97316;
+         {% endif %}">
     </div>
 
     <div class="p-5 flex flex-col flex-1">
       <!-- Type badge -->
       <div class="flex items-center mb-3">
-        <span class="text-xs font-semibold px-2 py-1 rounded-md uppercase tracking-wide
-          {% if resource.type == 'lesson' %}bg-blue-50 text-blue-600
-          {% elif resource.type == 'worksheet' %}bg-green-50 text-green-600
-          {% elif resource.type == 'scheme' %}bg-purple-50 text-purple-600
-          {% elif resource.type == 'slides' %}bg-orange-50 text-orange-600
-          {% endif %}">
+        <span class="text-xs font-semibold px-2 py-1 rounded-md uppercase tracking-wide"
+              style="{% if resource.type == 'lesson' %}background:rgba(59,130,246,0.1);color:#3b82f6;
+              {% elif resource.type == 'worksheet' %}background:rgba(34,197,94,0.1);color:#16a34a;
+              {% elif resource.type == 'scheme' %}background:rgba(168,85,247,0.1);color:#9333ea;
+              {% elif resource.type == 'slides' %}background:rgba(249,115,22,0.1);color:#ea580c;
+              {% endif %}">
           {{ resource_type_labels.get(resource.type, resource.type) }}
         </span>
       </div>
 
       <!-- Title -->
-      <h3 class="font-semibold text-gray-900 text-sm leading-snug mb-2 line-clamp-2">
+      <h3 class="font-semibold text-sm leading-snug mb-2 line-clamp-2" style="color:#2e4e61;">
         {{ resource.title }}
       </h3>
 
       <!-- Meta -->
-      <div class="flex flex-wrap gap-3 text-xs text-gray-500 mb-4">
+      <div class="flex flex-wrap gap-3 text-xs mb-4" style="color:#5f9cb3;">
         <span class="flex items-center gap-1">
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -95,18 +96,22 @@
         </span>
       </div>
 
-      <p class="text-xs text-gray-400 line-clamp-1 mb-4 flex-1">{{ resource.topic }}</p>
+      <p class="text-xs line-clamp-1 mb-4 flex-1" style="color:#5f9cb3;opacity:0.7;">{{ resource.topic }}</p>
 
       <!-- Actions -->
-      <div class="flex items-center gap-2 pt-3 border-t border-gray-100">
+      <div class="flex items-center gap-2 pt-3" style="border-top:1px solid rgba(95,156,179,0.12);">
         <a href="/resources/{{ resource.id }}"
-           class="flex-1 text-center px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 text-xs font-semibold rounded-lg transition-colors">
+           class="flex-1 text-center px-3 py-2 text-xs font-semibold rounded-lg transition-colors"
+           style="background:rgba(95,156,179,0.12);color:#5f9cb3;border-radius:var(--radius-sm);">
           View
         </a>
 
         <!-- Export quick buttons -->
         <a href="/export/{{ resource.id }}/pdf"
-           class="px-2.5 py-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+           class="px-2.5 py-2 rounded-lg transition-colors"
+           style="color:rgba(95,156,179,0.5);border-radius:var(--radius-sm);"
+           onmouseover="this.style.color='#ef4444';this.style.background='rgba(239,68,68,0.08)';"
+           onmouseout="this.style.color='rgba(95,156,179,0.5)';this.style.background='transparent';"
            title="Export PDF">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -116,7 +121,10 @@
 
         {% if resource.type in ['lesson', 'worksheet', 'scheme'] %}
         <a href="/export/{{ resource.id }}/docx"
-           class="px-2.5 py-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
+           class="px-2.5 py-2 rounded-lg transition-colors"
+           style="color:rgba(95,156,179,0.5);border-radius:var(--radius-sm);"
+           onmouseover="this.style.color='#5f9cb3';this.style.background='rgba(95,156,179,0.1)';"
+           onmouseout="this.style.color='rgba(95,156,179,0.5)';this.style.background='transparent';"
            title="Export DOCX">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -127,7 +135,10 @@
 
         {% if resource.type == 'slides' %}
         <a href="/export/{{ resource.id }}/pptx"
-           class="px-2.5 py-2 text-gray-400 hover:text-orange-500 hover:bg-orange-50 rounded-lg transition-colors"
+           class="px-2.5 py-2 rounded-lg transition-colors"
+           style="color:rgba(95,156,179,0.5);border-radius:var(--radius-sm);"
+           onmouseover="this.style.color='#f97316';this.style.background='rgba(249,115,22,0.08)';"
+           onmouseout="this.style.color='rgba(95,156,179,0.5)';this.style.background='transparent';"
            title="Export PPTX">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -142,7 +153,10 @@
           hx-target="#resource-card-{{ resource.id }}"
           hx-swap="outerHTML swap:300ms"
           hx-confirm="Delete '{{ resource.title }}'? This cannot be undone."
-          class="px-2.5 py-2 text-gray-300 hover:text-red-400 hover:bg-red-50 rounded-lg transition-colors"
+          class="px-2.5 py-2 rounded-lg transition-colors"
+          style="color:rgba(95,156,179,0.35);border-radius:var(--radius-sm);"
+          onmouseover="this.style.color='#ef4444';this.style.background='rgba(239,68,68,0.08)';"
+          onmouseout="this.style.color='rgba(95,156,179,0.35)';this.style.background='transparent';"
           title="Delete">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -158,22 +172,21 @@
 {% else %}
 <!-- Empty state -->
 <div class="flex flex-col items-center justify-center py-20 text-center">
-  <div class="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mb-4">
-    <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <div class="w-16 h-16 rounded-2xl flex items-center justify-center mb-4" style="background:rgba(95,156,179,0.1);">
+    <svg class="w-8 h-8" style="color:#5f9cb3;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
             d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
     </svg>
   </div>
-  <h3 class="text-lg font-semibold text-gray-700 mb-1">No resources yet</h3>
-  <p class="text-sm text-gray-400 mb-6">
+  <h3 class="text-lg font-semibold mb-1" style="color:#40657b;">No resources yet</h3>
+  <p class="text-sm mb-6" style="color:#5f9cb3;">
     {% if filter_type %}
       No {{ resource_type_labels.get(filter_type, filter_type) }} resources found.
     {% else %}
       Generate your first educational resource to get started.
     {% endif %}
   </p>
-  <a href="/"
-     class="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-500 hover:bg-blue-600 text-white text-sm font-semibold rounded-lg shadow-sm transition-colors">
+  <a href="/" class="btn-primary">
     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
     </svg>

@@ -57,6 +57,20 @@ async def homepage(request: Request, db: Session = Depends(get_db)):
     notice = request.query_params.get("notice", "")
     ctx = _base_ctx(request, user)
     ctx["notice"] = notice
+
+    # Compute locked_types for unverified users
+    locked_types: list[str] = []
+    if not user.is_school_verified and user.role != "admin":
+        for rtype in RESOURCE_TYPE_LABELS:
+            count = (
+                db.query(Resource)
+                .filter(Resource.user_id == user.id, Resource.type == rtype)
+                .count()
+            )
+            if count >= 1:
+                locked_types.append(rtype)
+    ctx["locked_types"] = locked_types
+
     return templates.TemplateResponse("index.html", ctx)
 
 
@@ -79,6 +93,49 @@ async def generate_resource(
         response = Response(status_code=200)
         response.headers["HX-Redirect"] = "/login"
         return response
+
+    # Unverified users are limited to 1 resource per type
+    if not user.is_school_verified and user.role != "admin":
+        existing_count = (
+            db.query(Resource)
+            .filter(Resource.user_id == user.id, Resource.type == resource_type)
+            .count()
+        )
+        if existing_count >= 1:
+            type_label = RESOURCE_TYPE_LABELS.get(resource_type, resource_type)
+            locked_html = f"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Type Locked – BloomsBuilder</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {{ background: linear-gradient(135deg, #ddeef5 0%, #eaf4f8 35%, #d8eaf2 70%, #e4f0f6 100%); min-height: 100vh; display:flex; align-items:center; justify-content:center; }}
+  </style>
+</head>
+<body>
+  <div style="background:rgba(255,255,255,0.72);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.55);box-shadow:0 8px 32px rgba(64,101,123,0.14);border-radius:18px;" class="max-w-md w-full mx-4 p-10 text-center">
+    <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5" style="background:rgba(95,156,179,0.12);">
+      <svg class="w-8 h-8" style="color:#5f9cb3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m0 0v2m0-2h2m-2 0H9m3-4V9m0 0a3 3 0 100-6 3 3 0 000 6z"/>
+      </svg>
+    </div>
+    <h1 class="text-2xl font-bold mb-2" style="color:#2e4e61;">{type_label} Locked</h1>
+    <p class="text-sm mb-6" style="color:#40657b;">
+      Unverified accounts can create <strong>1 resource per type</strong>.
+      You've already created a {type_label}.
+      Verify your school email to unlock unlimited access.
+    </p>
+    <a href="/" style="display:inline-block;background:linear-gradient(135deg,#5f9cb3,#40657b);color:white;padding:0.625rem 1.5rem;border-radius:8px;font-weight:600;font-size:0.875rem;text-decoration:none;box-shadow:0 4px 14px rgba(95,156,179,0.35);">
+      Back to Home
+    </a>
+  </div>
+</body>
+</html>
+"""
+            return HTMLResponse(content=locked_html, status_code=200)
 
     if resource_type not in GENERATORS:
         raise HTTPException(status_code=422, detail=f"Unknown resource type: {resource_type}")
