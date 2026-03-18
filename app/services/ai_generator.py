@@ -103,117 +103,58 @@ Return JSON with exactly this structure:
 
 def _worksheet_prompt(subject: str, key_stage: str, topic: str, additional: str) -> str:
     ctx = _base_context(subject, key_stage, topic, additional)
-    subj_lower = subject.lower()
-    is_maths = any(w in subj_lower for w in ["maths", "math", "mathematics", "numeracy", "statistics", "physics", "chemistry", "science"])
-
-    if is_maths:
-        subject_guidance = """CRITICAL — this is a maths/science worksheet:
-- ALL questions MUST be calculation-based with specific numbers. No "explain", "discuss", or "describe" questions.
-- Every question gives concrete values to work with (e.g. "a = 5 cm, b = 12 cm, find c").
-- Include a formula_box with the exact formula(s) pupils need.
-- Include a worked_example with clear step-by-step calculation (4–6 steps).
-- Use "working_space" (integer, lines of space needed) instead of answer_lines.
-- Section A: direct application of the formula, 4 questions increasing in difficulty.
-- Section B: real-life word problems using the same skill with specific numbers.
-- Section C: harder multi-step or reverse problems.
-- Do NOT write any essay or descriptive questions."""
-        structure_hint = """{
-  "title": "Pythagoras\u2019 Theorem – Practice Worksheet",
-  "instructions": "Show all your working. Give answers to 1 d.p. where necessary.",
-  "formula_box": "Pythagoras\u2019 Theorem: a² + b² = c²  (c = hypotenuse, the longest side)",
-  "worked_example": {
-    "question": "Find the hypotenuse when a = 6 cm and b = 8 cm.",
-    "steps": [
-      "Write the formula: a² + b² = c²",
-      "Substitute: 6² + 8² = c²",
-      "Calculate: 36 + 64 = c²",
-      "So c² = 100",
-      "Therefore c = √100 = 10 cm"
-    ]
-  },
-  "sections": [
-    {
-      "title": "Section A – Fluency",
-      "instructions": "Find the missing side. Show your working.",
-      "questions": [
-        {"number": 1, "question": "Find c when a = 3 cm and b = 4 cm.", "marks": 2, "working_space": 4},
-        {"number": 2, "question": "Find c when a = 5 cm and b = 12 cm.", "marks": 2, "working_space": 4},
-        {"number": 3, "question": "Find c when a = 7 cm and b = 24 cm.", "marks": 2, "working_space": 4},
-        {"number": 4, "question": "Find c when a = 9 cm and b = 40 cm. Give your answer to 1 d.p.", "marks": 3, "working_space": 5}
-      ]
-    },
-    {
-      "title": "Section B – Problem Solving",
-      "instructions": "Read each problem carefully. Draw a diagram if it helps.",
-      "questions": [
-        {"number": 5, "question": "A ladder 5 m long leans against a wall. Its foot is 3 m from the wall. How high up the wall does it reach? Give your answer to 1 d.p.", "marks": 3, "working_space": 6},
-        {"number": 6, "question": "A rectangular field is 60 m long and 45 m wide. How long is the diagonal path across it?", "marks": 3, "working_space": 6},
-        {"number": 7, "question": "Two ships leave port at the same time. Ship A travels 12 km north. Ship B travels 16 km east. How far apart are they?", "marks": 4, "working_space": 7}
-      ]
-    },
-    {
-      "title": "Section C – Challenge",
-      "instructions": "These questions require more than one step.",
-      "questions": [
-        {"number": 8, "question": "The hypotenuse of a right-angled triangle is 13 cm. One shorter side is 5 cm. Find the length of the other shorter side.", "marks": 3, "working_space": 6},
-        {"number": 9, "question": "Point A is at (1, 2) and point B is at (7, 10) on a coordinate grid. Calculate the straight-line distance AB.", "marks": 4, "working_space": 8}
-      ]
-    }
-  ]
-}"""
-    else:
-        subject_guidance = """Create subject-appropriate questions that are specific and useful:
-- Match question style to the subject (analysis for history, comprehension for English, etc.).
-- Questions should progress from retrieval → application → evaluation.
-- Write real, specific questions — not generic placeholders.
-- answer_lines should be proportional to marks (roughly 2 lines per mark)."""
-        structure_hint = """{
-  "title": "Worksheet title",
-  "instructions": "Clear pupil instructions",
-  "formula_box": null,
-  "worked_example": null,
-  "sections": [
-    {
-      "title": "Section A – Recall",
-      "instructions": "Answer the following questions.",
-      "questions": [
-        {"number": 1, "question": "Specific retrieval question", "marks": 1, "answer_lines": 2},
-        {"number": 2, "question": "Specific retrieval question", "marks": 1, "answer_lines": 2},
-        {"number": 3, "question": "Short answer question", "marks": 2, "answer_lines": 3}
-      ]
-    },
-    {
-      "title": "Section B – Application",
-      "instructions": "Use your knowledge to answer these questions.",
-      "questions": [
-        {"number": 4, "question": "Application question with context", "marks": 3, "answer_lines": 5},
-        {"number": 5, "question": "Application question", "marks": 3, "answer_lines": 5},
-        {"number": 6, "question": "Extended application", "marks": 4, "answer_lines": 7}
-      ]
-    },
-    {
-      "title": "Section C – Analysis & Evaluation",
-      "instructions": "These questions require a detailed response.",
-      "questions": [
-        {"number": 7, "question": "Analysis question", "marks": 4, "answer_lines": 8},
-        {"number": 8, "question": "Extended response — evaluation or judgement question", "marks": 6, "answer_lines": 12}
-      ]
-    }
-  ]
-}"""
-
     return f"""You are an expert UK secondary school teacher creating a high-quality, classroom-ready worksheet.
-Return ONLY valid JSON with no markdown fences, explanation, or extra text.
-Generate real, specific questions for the topic given — not placeholder text.
+Return ONLY valid JSON. No markdown fences, no explanation, no extra text.
 
 {ctx}
 
-{subject_guidance}
+Rules:
+- Write REAL, SPECIFIC questions for this exact topic — not generic placeholders.
+- Choose question types appropriate for the subject:
+    • Maths / science / computing: calculation and problem-solving questions with real numbers. No "explain" or "discuss" questions.
+    • English / humanities / social sciences: comprehension, analysis, source-based, extended writing.
+    • Languages: translation, grammar, vocabulary, reading/listening comprehension.
+- If the subject uses formulas or rules (maths, physics, chemistry, etc.) include "formula_box" and "worked_example". Otherwise set both to null.
+- Use "working_space" (integer, lines of blank space) for calculation subjects; use "answer_lines" for written subjects.
+- Questions must progress in difficulty across sections: fluency → application → challenge.
+- Sections should be named for the skill being tested, not Bloom’s labels (e.g. "Section A – Fluency", "Section B – Problem Solving", "Section C – Challenge" for maths; "Section A – Comprehension", "Section B – Analysis", "Section C – Evaluation" for English).
+- Each section should have 3–5 questions. Total marks 20–30.
+- Be specific — e.g. for Pythagoras give actual side lengths; for a Shakespeare play name the character and quote.
 
-The JSON must follow exactly this shape (use the example values as a guide for quality, not as the actual output):
-{structure_hint}"""
-
-
+Return JSON with this structure:
+{{
+  "title": "Topic-specific worksheet title",
+  "instructions": "Clear, subject-appropriate pupil instructions",
+  "formula_box": "Key formula or rule as a string, or null if not applicable",
+  "worked_example": {{
+    "question": "An example question with specific values",
+    "steps": ["Step 1", "Step 2", "Step 3", "Step 4"]
+  }} OR null if not applicable,
+  "sections": [
+    {{
+      "title": "Section A – [skill-appropriate name]",
+      "instructions": "Brief instruction for this section",
+      "questions": [
+        {{"number": 1, "question": "Real specific question", "marks": 2, "working_space": 4}},
+        {{"number": 2, "question": "Real specific question", "marks": 2, "working_space": 4}}
+      ]
+    }},
+    {{
+      "title": "Section B – [skill-appropriate name]",
+      "instructions": "Brief instruction",
+      "questions": [
+        {{"number": 3, "question": "Real specific question", "marks": 3, "working_space": 6}}
+      ]
+    }},
+    {{
+      "title": "Section C – [skill-appropriate name]",
+      "instructions": "Brief instruction",
+      "questions": [
+        {{"number": 6, "question": "Real specific question", "marks": 4, "working_space": 8}}
+      ]
+    }}
+  ]
+}}"""
 def _scheme_prompt(subject: str, key_stage: str, topic: str, additional: str) -> str:
     ctx = _base_context(subject, key_stage, topic, additional)
     return f"""You are an expert UK curriculum educational resource designer.
@@ -428,55 +369,9 @@ def _mock_lesson(subject: str, key_stage: str, topic: str, additional: str) -> d
 
 
 def _mock_worksheet(subject: str, key_stage: str, topic: str, additional: str) -> dict[str, Any]:
-    subj_lower = subject.lower()
-    is_maths = any(w in subj_lower for w in ["maths", "math", "mathematics", "numeracy", "statistics", "physics", "chemistry", "science"])
-    if is_maths:
-        return {
-            "title": f"{topic} – Practice Worksheet",
-            "instructions": "Show all your working. Give answers to 1 decimal place where necessary.",
-            "formula_box": f"Key formula for {topic} — shown here",
-            "worked_example": {
-                "question": f"Example question for {topic} with specific numbers.",
-                "steps": [
-                    "Step 1: Write the formula",
-                    "Step 2: Substitute the values",
-                    "Step 3: Calculate",
-                    "Step 4: State the answer with units",
-                ],
-            },
-            "sections": [
-                {
-                    "title": "Section A – Fluency",
-                    "instructions": "Find the missing value. Show your working.",
-                    "questions": [
-                        {"number": 1, "question": "Sample calculation question 1 (specific values)", "marks": 2, "working_space": 4},
-                        {"number": 2, "question": "Sample calculation question 2 (specific values)", "marks": 2, "working_space": 4},
-                        {"number": 3, "question": "Sample calculation question 3 (harder)", "marks": 2, "working_space": 4},
-                        {"number": 4, "question": "Sample calculation question 4 (hardest in section)", "marks": 3, "working_space": 5},
-                    ],
-                },
-                {
-                    "title": "Section B – Problem Solving",
-                    "instructions": "Read each problem carefully. Draw a diagram if it helps.",
-                    "questions": [
-                        {"number": 5, "question": "Real-life word problem 1 with specific numbers.", "marks": 3, "working_space": 6},
-                        {"number": 6, "question": "Real-life word problem 2 with specific numbers.", "marks": 3, "working_space": 6},
-                        {"number": 7, "question": "Multi-step word problem.", "marks": 4, "working_space": 7},
-                    ],
-                },
-                {
-                    "title": "Section C – Challenge",
-                    "instructions": "These questions require more than one step.",
-                    "questions": [
-                        {"number": 8, "question": "Reverse or harder problem.", "marks": 3, "working_space": 6},
-                        {"number": 9, "question": "Most difficult question in the worksheet.", "marks": 4, "working_space": 8},
-                    ],
-                },
-            ],
-        }
     return {
         "title": f"{topic} – Worksheet",
-        "instructions": f"Read each question carefully. Show your understanding of {topic}.",
+        "instructions": "Show all your working where required. Read each question carefully.",
         "formula_box": None,
         "worked_example": None,
         "sections": [
@@ -484,31 +379,28 @@ def _mock_worksheet(subject: str, key_stage: str, topic: str, additional: str) -
                 "title": "Section A – Recall",
                 "instructions": "Answer the following questions.",
                 "questions": [
-                    {"number": 1, "question": f"What is the definition of {topic}?", "marks": 1, "answer_lines": 2},
-                    {"number": 2, "question": f"Name two key features of {topic}.", "marks": 2, "answer_lines": 3},
-                    {"number": 3, "question": f"When did/where does {topic} most commonly occur?", "marks": 2, "answer_lines": 3},
+                    {"number": 1, "question": f"Define the key term associated with {topic}.", "marks": 1, "answer_lines": 2},
+                    {"number": 2, "question": f"List two key features of {topic}.", "marks": 2, "answer_lines": 3},
+                    {"number": 3, "question": f"Give one real-world example of {topic} in {subject}.", "marks": 2, "answer_lines": 3},
                 ],
             },
             {
                 "title": "Section B – Application",
                 "instructions": "Use your knowledge to answer these questions.",
                 "questions": [
-                    {"number": 4, "question": f"Using an example, explain how {topic} applies in {subject}.", "marks": 3, "answer_lines": 5},
-                    {"number": 5, "question": f"Compare two aspects of {topic}. What are the similarities and differences?", "marks": 4, "answer_lines": 7},
+                    {"number": 4, "question": f"Explain how {topic} is used or applied in practice.", "marks": 3, "answer_lines": 5},
+                    {"number": 5, "question": f"Compare two different aspects of {topic}. What are the key similarities and differences?", "marks": 4, "answer_lines": 7},
                 ],
             },
             {
-                "title": "Section C – Analysis & Evaluation",
-                "instructions": "These questions require a detailed, structured response.",
+                "title": "Section C – Challenge",
+                "instructions": "These questions require a detailed response.",
                 "questions": [
-                    {"number": 6, "question": f"Analyse the significance of {topic} in the context of {subject}.", "marks": 4, "answer_lines": 8},
-                    {"number": 7, "question": f"To what extent does {topic} influence outcomes in {subject}? Justify your answer with evidence.", "marks": 6, "answer_lines": 12},
+                    {"number": 6, "question": f"Evaluate the importance of {topic} in {subject}. Use evidence to support your answer.", "marks": 6, "answer_lines": 12},
                 ],
             },
         ],
     }
-
-
 def _mock_scheme(subject: str, key_stage: str, topic: str, additional: str) -> dict[str, Any]:
     week_topics = [
         f"Introduction to {topic}",
