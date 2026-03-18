@@ -17,11 +17,14 @@ AI_API_KEY = os.getenv("AI_API_KEY")
 AI_MODEL = os.getenv("AI_MODEL", "gpt-4o-mini")
 
 KEY_STAGE_LABELS = {
+    "EYFS": "Early Years Foundation Stage (EYFS)",
     "KS1": "Key Stage 1 (Years 1–2)",
     "KS2": "Key Stage 2 (Years 3–6)",
     "KS3": "Key Stage 3 (Years 7–9)",
-    "KS4": "Key Stage 4 (Years 10–11, GCSE)",
-    "KS5": "Key Stage 5 (Years 12–13, A-Level)",
+    "KS4 (GCSE)": "Key Stage 4 (Years 10–11, GCSE)",
+    "A Level": "A Level (Years 12–13)",
+    "BTEC": "BTEC",
+    "T Level": "T Level",
 }
 
 

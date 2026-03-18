@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Log in – Resource Builder{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto mt-12">
+
+  <div class="text-center mb-8">
+    <h1 class="text-3xl font-bold text-gray-900 mb-2">Welcome back</h1>
+    <p class="text-gray-500 text-sm">Log in to your Resource Builder account</p>
+  </div>
+
+  {% if msg == 'signed_up' %}
+  <div class="mb-5 bg-green-50 border border-green-200 rounded-xl px-4 py-3 text-sm text-green-800">
+    Account created! Log in below.
+  </div>
+  {% endif %}
+
+  {% if error %}
+  <div class="mb-5 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">
+    {{ error }}
+  </div>
+  {% endif %}
+
+  <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-8">
+    <form method="post" action="/login" class="space-y-5">
+
+      <div>
+        <label for="email" class="block text-sm font-medium text-gray-700 mb-1.5">Email address</label>
+        <input type="email" id="email" name="email" required autocomplete="email"
+               class="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm
+                      focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow" />
+      </div>
+
+      <div>
+        <label for="password" class="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
+        <input type="password" id="password" name="password" required autocomplete="current-password"
+               class="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm
+                      focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow" />
+      </div>
+
+      <button type="submit"
+              class="w-full py-2.5 bg-blue-500 hover:bg-blue-600 text-white text-sm font-semibold
+                     rounded-lg shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+        Log in
+      </button>
+
+    </form>
+  </div>
+
+  <p class="text-center text-sm text-gray-500 mt-6">
+    Don't have an account?
+    <a href="/signup" class="text-blue-600 font-medium hover:underline">Sign up</a>
+  </p>
+
+</div>
+{% endblock %}

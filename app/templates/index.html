@@ -4,10 +4,17 @@
 
 {% block content %}
 
+<!-- Notice for unverified school email -->
+{% if notice == 'unverified' %}
+<div class="mb-6 bg-amber-50 border border-amber-200 rounded-xl px-5 py-4 text-sm text-amber-800">
+  <strong>Welcome!</strong> We couldn't verify your school email address. Your account may need further verification — but you can get started right away.
+</div>
+{% endif %}
+
 <!-- Hero -->
 <div class="text-center mb-10">
   <h1 class="text-4xl font-bold text-gray-900 mb-3">
-    AI-Powered Educational Resources
+    Build Educational Resources
   </h1>
   <p class="text-lg text-gray-500 max-w-2xl mx-auto">
     Generate lesson plans, worksheets, schemes of work,
@@ -166,15 +173,7 @@
       </div>
 
       <!-- Submit -->
-      <div class="mt-8 flex items-center justify-between">
-        <p class="text-xs text-gray-400">
-          {% if not ai_key_set %}
-          Running in demo mode — using sample content.
-          Set <code class="bg-gray-100 px-1 rounded">AI_API_KEY</code> in <code class="bg-gray-100 px-1 rounded">.env</code> for AI generation.
-          {% else %}
-          AI generation enabled.
-          {% endif %}
-        </p>
+      <div class="mt-8 flex justify-end">
         <button type="submit"
                 class="inline-flex items-center gap-2 px-6 py-3 bg-blue-500 hover:bg-blue-600
                        text-white text-sm font-semibold rounded-lg shadow-sm
@@ -195,8 +194,6 @@
 
 {% block scripts %}
 <script>
-  const AI_KEY_SET = {{ "true" if ai_key_set else "false" }};
-
   function selectType(type) {
     // Update hidden input
     document.getElementById('resource_type').value = type;
