@@ -1,0 +1,247 @@
+{% extends "base.html" %}
+
+{% block title %}Generate – Resource Builder{% endblock %}
+
+{% block content %}
+
+<!-- Hero -->
+<div class="text-center mb-10">
+  <h1 class="text-4xl font-bold text-gray-900 mb-3">
+    AI-Powered Educational Resources
+  </h1>
+  <p class="text-lg text-gray-500 max-w-2xl mx-auto">
+    Generate lesson plans, worksheets, schemes of work,
+    and slide outlines — ready to download and use in the classroom.
+  </p>
+</div>
+
+<!-- Step 1: Resource type selector -->
+<div class="mb-8">
+  <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
+    Step 1 — Choose a resource type
+  </h2>
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="type-cards">
+
+    <!-- Lesson Plan -->
+    <button type="button" id="card-lesson"
+            onclick="selectType('lesson')"
+            class="type-card group relative flex flex-col items-center gap-3 p-6 bg-white rounded-xl border-2 border-gray-200
+                   hover:border-blue-400 hover:shadow-md transition-all duration-150 text-left">
+      <div class="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center group-hover:bg-blue-100 transition-colors">
+        <svg class="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+        </svg>
+      </div>
+      <div>
+        <p class="font-semibold text-gray-800 text-sm">Lesson Plan</p>
+        <p class="text-xs text-gray-400 mt-0.5">60-min structured lesson with activities</p>
+      </div>
+    </button>
+
+    <!-- Worksheet -->
+    <button type="button" id="card-worksheet"
+            onclick="selectType('worksheet')"
+            class="type-card group relative flex flex-col items-center gap-3 p-6 bg-white rounded-xl border-2 border-gray-200
+                   hover:border-blue-400 hover:shadow-md transition-all duration-150 text-left">
+      <div class="w-12 h-12 rounded-xl bg-green-50 flex items-center justify-center group-hover:bg-green-100 transition-colors">
+        <svg class="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+        </svg>
+      </div>
+      <div>
+        <p class="font-semibold text-gray-800 text-sm">Worksheet</p>
+        <p class="text-xs text-gray-400 mt-0.5">Tiered questions with answer spaces</p>
+      </div>
+    </button>
+
+    <!-- Scheme of Work -->
+    <button type="button" id="card-scheme"
+            onclick="selectType('scheme')"
+            class="type-card group relative flex flex-col items-center gap-3 p-6 bg-white rounded-xl border-2 border-gray-200
+                   hover:border-blue-400 hover:shadow-md transition-all duration-150 text-left">
+      <div class="w-12 h-12 rounded-xl bg-purple-50 flex items-center justify-center group-hover:bg-purple-100 transition-colors">
+        <svg class="w-6 h-6 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+        </svg>
+      </div>
+      <div>
+        <p class="font-semibold text-gray-800 text-sm">Scheme of Work</p>
+        <p class="text-xs text-gray-400 mt-0.5">6-week curriculum plan with progression</p>
+      </div>
+    </button>
+
+    <!-- Slide Outline -->
+    <button type="button" id="card-slides"
+            onclick="selectType('slides')"
+            class="type-card group relative flex flex-col items-center gap-3 p-6 bg-white rounded-xl border-2 border-gray-200
+                   hover:border-blue-400 hover:shadow-md transition-all duration-150 text-left">
+      <div class="w-12 h-12 rounded-xl bg-orange-50 flex items-center justify-center group-hover:bg-orange-100 transition-colors">
+        <svg class="w-6 h-6 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/>
+        </svg>
+      </div>
+      <div>
+        <p class="font-semibold text-gray-800 text-sm">Slide Outline</p>
+        <p class="text-xs text-gray-400 mt-0.5">10-slide presentation with speaker notes</p>
+      </div>
+    </button>
+
+  </div>
+</div>
+
+<!-- Step 2: Generation form (hidden until type selected) -->
+<div id="generation-form-container" class="hidden">
+  <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
+    Step 2 — Fill in the details
+  </h2>
+
+  <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 md:p-8">
+    <form id="generate-form"
+          hx-post="/generate"
+          hx-target="body"
+          hx-swap="none">
+
+      <!-- Hidden resource type -->
+      <input type="hidden" id="resource_type" name="resource_type" value="" />
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+        <!-- Subject -->
+        <div>
+          <label for="subject" class="block text-sm font-medium text-gray-700 mb-1.5">
+            Subject <span class="text-red-400">*</span>
+          </label>
+          <input type="text" id="subject" name="subject" required
+                 placeholder="e.g. Biology, History, Mathematics"
+                 class="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm
+                        focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                        placeholder:text-gray-300 transition-shadow" />
+        </div>
+
+        <!-- Key Stage -->
+        <div>
+          <label for="key_stage" class="block text-sm font-medium text-gray-700 mb-1.5">
+            Key Stage <span class="text-red-400">*</span>
+          </label>
+          <select id="key_stage" name="key_stage" required
+                  class="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm
+                         focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                         bg-white transition-shadow appearance-none">
+            <option value="" disabled selected>Select key stage…</option>
+            {% for ks in key_stages %}
+            <option value="{{ ks }}">{{ ks }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- Topic -->
+        <div class="md:col-span-2">
+          <label for="topic" class="block text-sm font-medium text-gray-700 mb-1.5">
+            Topic <span class="text-red-400">*</span>
+          </label>
+          <input type="text" id="topic" name="topic" required
+                 placeholder="e.g. Photosynthesis, World War II, Quadratic Equations"
+                 class="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm
+                        focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                        placeholder:text-gray-300 transition-shadow" />
+        </div>
+
+        <!-- Additional instructions -->
+        <div class="md:col-span-2">
+          <label for="additional_instructions" class="block text-sm font-medium text-gray-700 mb-1.5">
+            Additional Instructions
+            <span class="text-gray-400 font-normal">(optional)</span>
+          </label>
+          <textarea id="additional_instructions" name="additional_instructions" rows="3"
+                    placeholder="e.g. Include a group activity, focus on real-world applications, suitable for mixed-ability class…"
+                    class="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm
+                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                           placeholder:text-gray-300 resize-none transition-shadow"></textarea>
+        </div>
+
+      </div>
+
+      <!-- Submit -->
+      <div class="mt-8 flex items-center justify-between">
+        <p class="text-xs text-gray-400">
+          {% if not ai_key_set %}
+          Running in demo mode — using sample content.
+          Set <code class="bg-gray-100 px-1 rounded">AI_API_KEY</code> in <code class="bg-gray-100 px-1 rounded">.env</code> for AI generation.
+          {% else %}
+          AI generation enabled.
+          {% endif %}
+        </p>
+        <button type="submit"
+                class="inline-flex items-center gap-2 px-6 py-3 bg-blue-500 hover:bg-blue-600
+                       text-white text-sm font-semibold rounded-lg shadow-sm
+                       transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M13 10V3L4 14h7v7l9-11h-7z"/>
+          </svg>
+          Generate Resource
+        </button>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const AI_KEY_SET = {{ "true" if ai_key_set else "false" }};
+
+  function selectType(type) {
+    // Update hidden input
+    document.getElementById('resource_type').value = type;
+
+    // Reset all cards
+    document.querySelectorAll('.type-card').forEach(function(card) {
+      card.classList.remove('border-blue-500', 'shadow-md', 'bg-blue-50');
+      card.classList.add('border-gray-200');
+    });
+
+    // Highlight selected card
+    const selected = document.getElementById('card-' + type);
+    selected.classList.add('border-blue-500', 'shadow-md', 'bg-blue-50');
+    selected.classList.remove('border-gray-200');
+
+    // Show form
+    const container = document.getElementById('generation-form-container');
+    container.classList.remove('hidden');
+    container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // Show loading overlay on form submit
+  document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('generate-form');
+    if (form) {
+      form.addEventListener('submit', function (e) {
+        // Basic validation
+        const type = document.getElementById('resource_type').value;
+        if (!type) {
+          e.preventDefault();
+          alert('Please select a resource type first.');
+          return;
+        }
+        document.getElementById('loading-overlay').classList.add('active');
+      });
+
+      // HTMX redirect handler
+      form.addEventListener('htmx:afterRequest', function (evt) {
+        document.getElementById('loading-overlay').classList.remove('active');
+        const redirect = evt.detail.xhr.getResponseHeader('HX-Redirect');
+        if (redirect) {
+          window.location.href = redirect;
+        }
+      });
+    }
+  });
+</script>
+{% endblock %}
