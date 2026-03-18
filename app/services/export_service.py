@@ -8,8 +8,10 @@ DOCX – python-docx (programmatic Word document)
 PPTX – python-pptx (programmatic PowerPoint, slides only)
 """
 
+import base64
 import io
 import json
+import re
 from typing import Any
 
 from docx import Document
@@ -21,8 +23,72 @@ from pptx.util import Inches, Pt as PptPt
 from pptx.dml.color import RGBColor as PptRGB
 from pptx.enum.text import PP_ALIGN
 
-# Brand colour used for accents
-BRAND_RGB = (59, 130, 246)  # blue-500
+# ---------------------------------------------------------------------------
+# Colour schemes for PPTX export
+# ---------------------------------------------------------------------------
+
+PPTX_SCHEMES = {
+    "ocean": {
+        "name": "Ocean",
+        "bg":     (13,  42,  65),
+        "panel":  (22,  65,  98),
+        "accent": (95,  156, 179),
+        "accent2":(162, 210, 228),
+        "title_c":(255, 255, 255),
+        "body_c": (200, 230, 240),
+        "muted":  (120, 170, 195),
+    },
+    "midnight": {
+        "name": "Midnight",
+        "bg":     (10,  10,  28),
+        "panel":  (18,  18,  55),
+        "accent": (110, 120, 255),
+        "accent2":(180, 185, 255),
+        "title_c":(255, 255, 255),
+        "body_c": (200, 200, 240),
+        "muted":  (130, 130, 200),
+    },
+    "forest": {
+        "name": "Forest",
+        "bg":     (10,  32,  20),
+        "panel":  (18,  55,  35),
+        "accent": (72,  175, 110),
+        "accent2":(150, 220, 175),
+        "title_c":(255, 255, 255),
+        "body_c": (195, 235, 215),
+        "muted":  (110, 185, 145),
+    },
+    "charcoal": {
+        "name": "Charcoal",
+        "bg":     (22,  22,  28),
+        "panel":  (40,  40,  52),
+        "accent": (255, 140, 50),
+        "accent2":(255, 200, 140),
+        "title_c":(255, 255, 255),
+        "body_c": (215, 215, 225),
+        "muted":  (145, 145, 165),
+    },
+    "crimson": {
+        "name": "Crimson",
+        "bg":     (32,  8,   16),
+        "panel":  (58,  12,  28),
+        "accent": (210, 60,  80),
+        "accent2":(255, 160, 175),
+        "title_c":(255, 255, 255),
+        "body_c": (240, 200, 210),
+        "muted":  (185, 120, 140),
+    },
+    "clean": {
+        "name": "Clean",
+        "bg":     (255, 255, 255),
+        "panel":  (235, 245, 252),
+        "accent": (64,  101, 123),
+        "accent2":(95,  156, 179),
+        "title_c":(20,  40,  60),
+        "body_c": (50,  75,  95),
+        "muted":  (110, 140, 160),
+    },
+}
 
 
 # ---------------------------------------------------------------------------
@@ -285,97 +351,171 @@ def _docx_generic(doc: Document, resource: Any, data: dict) -> None:
 
 
 # ---------------------------------------------------------------------------
-# PPTX export – python-pptx (slides type only)
+# PPTX export – python-pptx  (professional themed slides)
 # ---------------------------------------------------------------------------
+
+# ── Low-level helpers ──────────────────────────────────────────────────────
+
+def _r(t: tuple) -> PptRGB:
+    return PptRGB(*t)
+
+
+def _rect(slide, x: float, y: float, w: float, h: float, color: tuple):
+    """Add a filled rectangle (no border). Coordinates in inches."""
+    s = slide.shapes.add_shape(1, Inches(x), Inches(y), Inches(w), Inches(h))
+    s.fill.solid()
+    s.fill.fore_color.rgb = _r(color)
+    s.line.fill.background()
+    return s
+
+
+def _tb(slide, x: float, y: float, w: float, h: float):
+    """Create a word-wrapping textbox and return its text_frame."""
+    tb = slide.shapes.add_textbox(Inches(x), Inches(y), Inches(w), Inches(h))
+    tb.text_frame.word_wrap = True
+    return tb.text_frame
+
+
+def _run(para, text: str, size: int, color: tuple, bold=False, italic=False):
+    r = para.add_run()
+    r.text = text
+    r.font.size = PptPt(size)
+    r.font.color.rgb = _r(color)
+    r.font.bold = bold
+    r.font.italic = italic
+    return r
+
+
+def _single(slide, x, y, w, h, text, size, color, bold=False,
+            align=PP_ALIGN.LEFT, italic=False):
+    tf = _tb(slide, x, y, w, h)
+    p = tf.paragraphs[0]
+    p.alignment = align
+    _run(p, text, size, color, bold, italic)
+
+
+def _bullets(slide, x, y, w, h, items, size, color, lead="▸  "):
+    if not items:
+        return
+    tf = _tb(slide, x, y, w, h)
+    for i, item in enumerate(items):
+        p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
+        p.space_before = PptPt(9)
+        p.space_after  = PptPt(2)
+        _run(p, f"{lead}{item}", size, color)
+
+
+def _slide_num(slide, num, color):
+    _single(slide, 12.55, 7.08, 0.65, 0.32, str(num), 11, color,
+            align=PP_ALIGN.RIGHT)
+
+
+def _set_notes(slide, text: str):
+    if text and text.strip():
+        slide.notes_slide.notes_text_frame.text = text.strip()
+
+
+def _embed_image(slide, x, y, w, h, data_url: str):
+    """Decode a data-URL and place the image on the slide."""
+    if not data_url or not data_url.startswith("data:"):
+        return
+    m = re.match(r"data:[^;]+;base64,(.+)", data_url, re.DOTALL)
+    if not m:
+        return
+    try:
+        raw = base64.b64decode(m.group(1))
+        slide.shapes.add_picture(
+            io.BytesIO(raw), Inches(x), Inches(y),
+            width=Inches(w), height=Inches(h),
+        )
+    except Exception:
+        pass  # gracefully skip broken image data
+
+
+# ── Slide layout builders ──────────────────────────────────────────────────
+
+_W, _H = 13.33, 7.5   # slide dimensions in inches
+
+
+def _pptx_title_slide(slide, data: dict, sc: dict):
+    """Full-height accent panel on left, large title on right."""
+    _rect(slide, 0,   0,   _W,  _H,  sc["bg"])        # background
+    _rect(slide, 0,   0,   4.2, _H,  sc["accent"])    # left accent panel
+    _rect(slide, 4.5, 4.05, 8.5, 0.04, sc["accent2"]) # thin divider
+
+    _single(slide, 4.5, 1.7, 8.5, 2.1,
+            data.get("title", ""), 36, sc["title_c"], bold=True)
+
+    bullets = [b for b in data.get("bullet_points", []) if b.strip()]
+    if bullets:
+        _bullets(slide, 4.5, 4.25, 8.5, 2.6, bullets, 19, sc["accent2"], lead="")
+
+    _slide_num(slide, data.get("number", 1), sc["muted"])
+    _set_notes(slide, data.get("speaker_notes", ""))
+
+
+def _pptx_content_slide(slide, data: dict, sc: dict):
+    """Top accent bar, large title, bullet list, optional embedded image."""
+    _rect(slide, 0,   0,    _W,   _H,   sc["bg"])      # background
+    _rect(slide, 0,   0,    _W,   0.16, sc["accent"])  # top bar
+    _rect(slide, 0.5, 1.18, 12.3, 0.03, sc["accent"])  # title divider
+
+    _single(slide, 0.5, 0.26, 12.3, 0.9,
+            data.get("title", ""), 26, sc["title_c"], bold=True)
+
+    img_url = data.get("image", "")
+    content_w = 7.6 if img_url else 12.3
+
+    bullets = [b for b in data.get("bullet_points", []) if b.strip()]
+    _bullets(slide, 0.5, 1.35, content_w, 5.45, bullets, 17, sc["body_c"])
+
+    if img_url:
+        _embed_image(slide, 8.4, 1.35, 4.6, 5.45, img_url)
+
+    _slide_num(slide, data.get("number", ""), sc["muted"])
+    _set_notes(slide, data.get("speaker_notes", ""))
+
+
+def _pptx_image_section_slide(slide, data: dict, sc: dict):
+    """Stand-alone image slide (from legacy image-section nodes)."""
+    _rect(slide, 0,   0,   _W,   _H,   sc["bg"])
+    _rect(slide, 0,   0,   _W,   0.16, sc["accent"])
+    caption = data.get("caption") or data.get("title") or "Image"
+    _single(slide, 0.5, 0.26, 12.3, 0.9, caption, 22, sc["title_c"],
+            bold=True, align=PP_ALIGN.CENTER)
+    src = data.get("src") or data.get("image", "")
+    if src:
+        _embed_image(slide, 1.5, 1.3, 10.33, 5.5, src)
+
+
+# ── Public export function ─────────────────────────────────────────────────
 
 def export_pptx(resource: Any) -> bytes:
     data = json.loads(resource.structured_output)
-    prs = Presentation()
-    prs.slide_width = Inches(13.33)
-    prs.slide_height = Inches(7.5)
-
     slides_data = data.get("slides", [])
     if not slides_data:
-        raise ValueError("No slides found in structured output. PPTX export is only available for Slide Outline resources.")
+        raise ValueError(
+            "No slides found. PPTX export is only available for Slide Outline resources."
+        )
 
-    blank_layout = prs.slide_layouts[6]  # completely blank
+    sc = PPTX_SCHEMES.get(
+        data.get("colour_scheme", "ocean"), PPTX_SCHEMES["ocean"]
+    )
 
-    for slide_data in slides_data:
-        slide = prs.slides.add_slide(blank_layout)
-        _build_pptx_slide(slide, slide_data, prs)
+    prs = Presentation()
+    prs.slide_width  = Inches(_W)
+    prs.slide_height = Inches(_H)
+    blank = prs.slide_layouts[6]  # completely blank
+
+    for s in slides_data:
+        slide = prs.slides.add_slide(blank)
+        if s.get("type") == "image":
+            _pptx_image_section_slide(slide, s, sc)
+        elif s.get("content_type") == "title":
+            _pptx_title_slide(slide, s, sc)
+        else:
+            _pptx_content_slide(slide, s, sc)
 
     buf = io.BytesIO()
     prs.save(buf)
     return buf.getvalue()
-
-
-def _build_pptx_slide(slide: Any, data: dict, prs: Presentation) -> None:
-    content_type = data.get("content_type", "content")
-
-    # Background rectangle (white)
-    bg = slide.shapes.add_shape(1, Inches(0), Inches(0), prs.slide_width, prs.slide_height)
-    bg.fill.solid()
-    bg.fill.fore_color.rgb = PptRGB(255, 255, 255)
-    bg.line.fill.background()
-
-    # Top accent bar (brand blue)
-    bar_h = Inches(0.08)
-    bar = slide.shapes.add_shape(1, Inches(0), Inches(0), prs.slide_width, bar_h)
-    bar.fill.solid()
-    bar.fill.fore_color.rgb = PptRGB(*BRAND_RGB)
-    bar.line.fill.background()
-
-    # Slide number chip
-    num_box = slide.shapes.add_textbox(Inches(0.2), Inches(0.15), Inches(0.5), Inches(0.35))
-    num_tf = num_box.text_frame
-    num_p = num_tf.paragraphs[0]
-    num_run = num_p.add_run()
-    num_run.text = str(data.get("number", ""))
-    num_run.font.size = PptPt(10)
-    num_run.font.color.rgb = PptRGB(107, 114, 128)
-
-    # Title
-    title_box = slide.shapes.add_textbox(Inches(0.5), Inches(0.6), Inches(12.3), Inches(1.2))
-    tf = title_box.text_frame
-    tf.word_wrap = True
-    title_para = tf.paragraphs[0]
-    title_run = title_para.add_run()
-    title_run.text = data.get("title", "")
-    title_run.font.size = PptPt(28) if content_type == "title" else PptPt(22)
-    title_run.font.bold = True
-    title_run.font.color.rgb = PptRGB(30, 58, 95)
-
-    # Bullet points
-    content_box = slide.shapes.add_textbox(Inches(0.5), Inches(2.0), Inches(8.8), Inches(4.5))
-    content_tf = content_box.text_frame
-    content_tf.word_wrap = True
-
-    for i, bullet in enumerate(data.get("bullet_points", [])):
-        if i == 0:
-            para = content_tf.paragraphs[0]
-        else:
-            para = content_tf.add_paragraph()
-        para.level = 0
-        run = para.add_run()
-        run.text = f"• {bullet}"
-        run.font.size = PptPt(16)
-        run.font.color.rgb = PptRGB(31, 41, 55)
-        para.space_before = PptPt(4)
-
-    # Speaker notes
-    if data.get("speaker_notes"):
-        notes_box = slide.shapes.add_textbox(Inches(0.5), Inches(6.6), Inches(12.3), Inches(0.7))
-        notes_tf = notes_box.text_frame
-        notes_tf.word_wrap = True
-        notes_para = notes_tf.paragraphs[0]
-        notes_run = notes_para.add_run()
-        notes_run.text = f"Notes: {data['speaker_notes']}"
-        notes_run.font.size = PptPt(9)
-        notes_run.font.italic = True
-        notes_run.font.color.rgb = PptRGB(107, 114, 128)
-
-        # Divider above notes
-        divider = slide.shapes.add_shape(1, Inches(0.5), Inches(6.5), Inches(12.3), Inches(0.01))
-        divider.fill.solid()
-        divider.fill.fore_color.rgb = PptRGB(229, 231, 235)
-        divider.line.fill.background()

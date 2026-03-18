@@ -92,6 +92,7 @@ async def generate_resource(
     key_stage: str = Form(...),
     topic: str = Form(...),
     additional_instructions: str = Form(""),
+    colour_scheme: str = Form("ocean"),
     uploaded_files: List[UploadFile] = File([]),
     db: Session = Depends(get_db),
 ):
@@ -181,6 +182,10 @@ async def generate_resource(
         uploaded_images=uploaded_images,
         pdf_text=pdf_context,
     )
+
+    # Store colour scheme in slides resources
+    if resource_type == "slides" and colour_scheme:
+        structured_data["colour_scheme"] = colour_scheme
 
     title = structured_data.get("title", f"{topic} – {RESOURCE_TYPE_LABELS.get(resource_type, resource_type)}")
     input_prompt = (

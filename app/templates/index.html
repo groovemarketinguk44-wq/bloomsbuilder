@@ -272,6 +272,32 @@
                  style="background:rgba(255,255,255,0.7);border:1px solid rgba(95,156,179,0.25);border-radius:var(--radius-sm);" />
         </div>
 
+        <!-- Colour scheme picker (slides only) -->
+        <div class="md:col-span-2 hidden" id="scheme-picker-row">
+          <label class="block text-sm font-medium mb-2" style="color:#40657b;">
+            Presentation Theme
+          </label>
+          <div class="flex flex-wrap gap-2" id="scheme-btns">
+            {% for s_key, s_name, s_bg, s_accent in [
+              ('ocean',    'Ocean',    '#0d2a41', '#5f9cb3'),
+              ('midnight', 'Midnight', '#0a0a1c', '#7878ff'),
+              ('forest',   'Forest',   '#0a2014', '#48af6e'),
+              ('charcoal', 'Charcoal', '#16161c', '#ff8c32'),
+              ('crimson',  'Crimson',  '#200810', '#d23c50'),
+              ('clean',    'Clean',    '#f5f8fc', '#40657b')
+            ] %}
+            <button type="button" onclick="selectScheme('{{ s_key }}')"
+                    data-scheme="{{ s_key }}"
+                    class="gen-scheme-btn flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
+                    style="border:2px solid rgba(95,156,179,0.2);color:#40657b;background:rgba(255,255,255,0.55);">
+              <span class="w-3.5 h-3.5 rounded-full flex-shrink-0" style="background:{{ s_accent }};border:2px solid {{ s_bg }};"></span>
+              {{ s_name }}
+            </button>
+            {% endfor %}
+          </div>
+          <input type="hidden" name="colour_scheme" id="colour_scheme_input" value="ocean">
+        </div>
+
         <!-- Additional instructions -->
         <div class="md:col-span-2">
           <label for="additional_instructions" class="block text-sm font-medium mb-1.5" style="color:#40657b;">
@@ -325,25 +351,43 @@
 {% block scripts %}
 <script>
   function selectType(type) {
-    // Update hidden input
     document.getElementById('resource_type').value = type;
 
-    // Reset all cards
     document.querySelectorAll('.type-card:not(.locked-card)').forEach(function(card) {
       card.classList.remove('selected-card');
     });
 
-    // Highlight selected card
     const selected = document.getElementById('card-' + type);
     if (selected && !selected.classList.contains('locked-card')) {
       selected.classList.add('selected-card');
     }
 
-    // Show form
+    // Show/hide colour scheme picker for slides only
+    const picker = document.getElementById('scheme-picker-row');
+    if (type === 'slides') {
+      picker.classList.remove('hidden');
+    } else {
+      picker.classList.add('hidden');
+    }
+
     const container = document.getElementById('generation-form-container');
     container.classList.remove('hidden');
     container.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
+
+  function selectScheme(key) {
+    document.getElementById('colour_scheme_input').value = key;
+    document.querySelectorAll('.gen-scheme-btn').forEach(function(b) {
+      const active = b.dataset.scheme === key;
+      b.style.borderColor = active ? 'rgba(95,156,179,0.7)' : 'rgba(95,156,179,0.2)';
+      b.style.background  = active ? 'rgba(95,156,179,0.12)' : 'rgba(255,255,255,0.55)';
+      b.style.color       = active ? '#40657b' : '#40657b';
+      b.style.transform   = active ? 'scale(1.05)' : 'scale(1)';
+    });
+  }
+
+  // Default scheme selection
+  selectScheme('ocean');
 
   // File upload handling
   const selectedFiles = new DataTransfer();

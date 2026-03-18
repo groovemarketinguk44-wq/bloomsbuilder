@@ -832,6 +832,31 @@
 <!-- ═══════════════════════════════════════════════════════════════════════ -->
 {% elif resource.type == 'slides' %}
 
+  <!-- Colour scheme picker -->
+  <div class="glass px-5 py-4 mb-5 flex flex-wrap items-center gap-4" style="border-radius:var(--radius-md);">
+    <span class="text-xs font-semibold uppercase tracking-wider flex-shrink-0" style="color:#94a3b8;">Theme</span>
+    <div class="flex flex-wrap gap-2">
+      {% for sk, sn, sa in [
+        ('ocean',    'Ocean',    '#5f9cb3'),
+        ('midnight', 'Midnight', '#7878ff'),
+        ('forest',   'Forest',   '#48af6e'),
+        ('charcoal', 'Charcoal', '#ff8c32'),
+        ('crimson',  'Crimson',  '#d23c50'),
+        ('clean',    'Clean',    '#40657b')
+      ] %}
+      <button type="button" onclick="setSlideScheme('{{ sk }}')"
+              data-scheme="{{ sk }}"
+              class="pv-scheme-btn flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
+              style="border:2px solid rgba(95,156,179,0.2);color:#40657b;background:rgba(255,255,255,0.5);">
+        <span class="w-3 h-3 rounded-full flex-shrink-0" style="background:{{ sa }};"></span>
+        {{ sn }}
+      </button>
+      {% endfor %}
+    </div>
+    <input type="hidden" id="slides-colour-scheme" value="{{ data.get('colour_scheme', 'ocean') }}">
+    <span class="text-xs ml-auto flex-shrink-0" style="color:#5f9cb3;">Theme applies to the downloaded PowerPoint file</span>
+  </div>
+
   <div class="grid md:grid-cols-2 gap-4" id="slides-list">
     {% for slide in data.get('slides', []) %}
     {% if slide.get('type') == 'image' %}
@@ -895,11 +920,35 @@
               {% endfor %}
             </ul>
             <button class="btn-add-item" onclick="addSlideBullet(this)">+ Add bullet</button>
+            <!-- Speaker notes -->
             <div class="mt-2 pt-2" style="border-top:1px solid rgba(95,156,179,0.1);">
               <p class="text-xs italic" style="color:rgba(95,156,179,0.7);">
                 <span class="font-medium not-italic" style="color:#5f9cb3;">Notes:</span>
                 <span contenteditable="true" data-field="slide-notes">{{ slide.get('speaker_notes', '') }}</span>
               </p>
+            </div>
+            <!-- Per-slide image -->
+            <div class="mt-2 pt-2" style="border-top:1px solid rgba(95,156,179,0.08);">
+              {% if slide.get('image') %}
+              <img data-field="slide-image" data-src="{{ slide.get('image') }}"
+                   src="{{ slide.get('image') }}"
+                   class="max-w-full rounded-lg mb-2" style="max-height:110px;object-fit:contain;">
+              {% else %}
+              <img data-field="slide-image" data-src="" src=""
+                   style="display:none;max-height:110px;object-fit:contain;max-width:100%;border-radius:8px;margin-bottom:8px;">
+              {% endif %}
+              <div class="flex gap-2 flex-wrap">
+                <button type="button" class="btn-add-item slide-img-btn"
+                        onclick="triggerSlideImage(this)">
+                  📷 <span>{{ 'Change image' if slide.get('image') else 'Add slide image' }}</span>
+                </button>
+                {% if slide.get('image') %}
+                <button type="button" class="btn-add-item" style="color:#ef4444;"
+                        onclick="removeSlideImage(this)">✕ Remove</button>
+                {% endif %}
+              </div>
+              <input type="file" accept="image/*" style="display:none;"
+                     onchange="handleSlideImage(this)">
             </div>
           </div>
         </div>
@@ -909,7 +958,6 @@
     {% endfor %}
   </div>
   <button class="btn-add-section" onclick="addSlide()">+ Add slide</button>
-  <button class="btn-add-item" onclick="addImage('slides-list')">🖼 Add image</button>
 
 {% endif %}
 
@@ -1157,6 +1205,9 @@
     const titleEl = document.querySelector('[data-field="title"]');
     if (titleEl) out.title = getText(titleEl);
 
+    const schemeEl = document.getElementById('slides-colour-scheme');
+    out.colour_scheme = schemeEl ? schemeEl.value : 'ocean';
+
     out.slides = [];
     document.querySelectorAll('#slides-list > .draggable-section').forEach((slideEl, idx) => {
       if (slideEl.dataset.type === 'image-section') {
@@ -1169,17 +1220,75 @@
       slideEl.querySelectorAll('.slide-bullets [data-field="slide-bullet"]').forEach(el => {
         const t = getText(el); if (t) bullet_points.push(t);
       });
+      const imgEl = slideEl.querySelector('[data-field="slide-image"]');
+      const image = (imgEl && imgEl.dataset.src && imgEl.dataset.src.startsWith('data:'))
+                    ? imgEl.dataset.src : '';
       out.slides.push({
         number: idx + 1,
         content_type: getText(slideEl.querySelector('[data-field="slide-content-type"]')),
         title: getText(slideEl.querySelector('[data-field="slide-title"]')),
         bullet_points,
         speaker_notes: getText(slideEl.querySelector('[data-field="slide-notes"]')),
+        image,
       });
     });
 
     return out;
   }
+
+  // Scheme picker
+  function setSlideScheme(key) {
+    const el = document.getElementById('slides-colour-scheme');
+    if (el) el.value = key;
+    document.querySelectorAll('.pv-scheme-btn').forEach(b => {
+      const active = b.dataset.scheme === key;
+      b.style.borderColor = active ? 'rgba(95,156,179,0.7)' : 'rgba(95,156,179,0.2)';
+      b.style.background  = active ? 'rgba(95,156,179,0.12)' : 'rgba(255,255,255,0.5)';
+      b.style.transform   = active ? 'scale(1.06)' : 'scale(1)';
+    });
+    markDirty();
+  }
+
+  // Per-slide image functions
+  function triggerSlideImage(btn) {
+    btn.closest('[data-type="slide"]').querySelector('input[type="file"]').click();
+  }
+
+  function handleSlideImage(fileInput) {
+    const file = fileInput.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      const src = e.target.result;
+      const container = fileInput.closest('[data-type="slide"]');
+      const imgEl = container.querySelector('[data-field="slide-image"]');
+      imgEl.src = src;
+      imgEl.dataset.src = src;
+      imgEl.style.display = 'block';
+      const btnSpan = container.querySelector('.slide-img-btn span');
+      if (btnSpan) btnSpan.textContent = 'Change image';
+      markDirty();
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function removeSlideImage(btn) {
+    const container = btn.closest('[data-type="slide"]');
+    const imgEl = container.querySelector('[data-field="slide-image"]');
+    imgEl.src = '';
+    imgEl.dataset.src = '';
+    imgEl.style.display = 'none';
+    const btnSpan = container.querySelector('.slide-img-btn span');
+    if (btnSpan) btnSpan.textContent = 'Add slide image';
+    btn.remove();
+    markDirty();
+  }
+
+  // Init scheme picker on load
+  document.addEventListener('DOMContentLoaded', () => {
+    const el = document.getElementById('slides-colour-scheme');
+    if (el) setSlideScheme(el.value || 'ocean');
+  });
 
   // ── Save ───────────────────────────────────────────────────────────────
   async function saveResource(label) {
@@ -1730,6 +1839,14 @@
                 <span class="font-medium not-italic" style="color:#5f9cb3;">Notes:</span>
                 <span contenteditable="true" data-field="slide-notes">Speaker notes here.</span>
               </p>
+            </div>
+            <div class="mt-2 pt-2" style="border-top:1px solid rgba(95,156,179,0.08);">
+              <img data-field="slide-image" data-src="" src=""
+                   style="display:none;max-height:110px;object-fit:contain;max-width:100%;border-radius:8px;margin-bottom:8px;">
+              <button type="button" class="btn-add-item slide-img-btn" onclick="triggerSlideImage(this)">
+                📷 <span>Add slide image</span>
+              </button>
+              <input type="file" accept="image/*" style="display:none;" onchange="handleSlideImage(this)">
             </div>
           </div>
         </div>
