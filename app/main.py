@@ -40,16 +40,14 @@ def _seed_admin():
 def _run_migrations():
     """Add any missing columns to existing tables (safe to run repeatedly)."""
     import sqlalchemy as sa
+    ddl_statements = [
+        "ALTER TABLE resources ADD COLUMN IF NOT EXISTS user_id INTEGER",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS plan VARCHAR(20) DEFAULT 'free'",
+    ]
     with engine.connect() as conn:
-        for ddl in [
-            "ALTER TABLE resources ADD COLUMN user_id INTEGER",
-            "ALTER TABLE users ADD COLUMN plan VARCHAR(20) DEFAULT 'free'",
-        ]:
-            try:
-                conn.execute(sa.text(ddl))
-                conn.commit()
-            except Exception:
-                pass  # Column already exists — that's fine
+        for ddl in ddl_statements:
+            conn.execute(sa.text(ddl))
+        conn.commit()
 
 
 @asynccontextmanager
