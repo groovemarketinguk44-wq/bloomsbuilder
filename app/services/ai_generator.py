@@ -14,7 +14,7 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 AI_API_KEY = os.getenv("AI_API_KEY")
-AI_MODEL = os.getenv("AI_MODEL", "claude-haiku-4-5-20251001")
+AI_MODEL = os.getenv("AI_MODEL", "gpt-4o-mini")
 
 KEY_STAGE_LABELS = {
     "KS1": "Key Stage 1 (Years 1–2)",
@@ -557,21 +557,26 @@ def _mock_slides(subject: str, key_stage: str, topic: str, additional: str) -> d
 # ---------------------------------------------------------------------------
 
 async def _call_ai_api(prompt: str) -> dict[str, Any]:
-    """Call Anthropic Claude API and parse JSON response."""
-    import anthropic  # imported here so missing package doesn't break mock mode
+    """Call OpenAI API and parse JSON response."""
+    from openai import AsyncOpenAI  # imported here so missing package doesn't break mock mode
 
-    client = anthropic.AsyncAnthropic(api_key=AI_API_KEY)
-    message = await client.messages.create(
+    client = AsyncOpenAI(api_key=AI_API_KEY)
+    response = await client.chat.completions.create(
         model=AI_MODEL,
         max_tokens=4096,
-        system=(
-            "You are an expert UK curriculum educational resource designer. "
-            "Always return valid JSON only, with no markdown fences, no explanation, "
-            "and no text outside the JSON object."
-        ),
-        messages=[{"role": "user", "content": prompt}],
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    "You are an expert UK curriculum educational resource designer. "
+                    "Always return valid JSON only, with no markdown fences, no explanation, "
+                    "and no text outside the JSON object."
+                ),
+            },
+            {"role": "user", "content": prompt},
+        ],
     )
-    text = message.content[0].text.strip()
+    text = response.choices[0].message.content.strip()
     # Strip accidental markdown fences if present
     if text.startswith("```"):
         text = text.split("```")[1]
