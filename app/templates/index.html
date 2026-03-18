@@ -76,7 +76,7 @@
     {% set is_locked = 'lesson' in locked_types %}
     <button type="button" id="card-lesson"
             {% if not is_locked %}onclick="selectType('lesson')"{% endif %}
-            class="type-card{% if is_locked %} locked-card{% endif %} group flex flex-col items-center gap-3 p-6 text-left"
+            class="type-card{% if is_locked %} locked-card{% endif %} group flex flex-col items-center gap-3 p-4 md:p-6 text-left"
             style="background:var(--glass-bg);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);border:2px solid var(--glass-border);border-radius:var(--radius-lg);box-shadow:var(--glass-shadow);"
             {% if is_locked %}title="Verify your school email to unlock"{% endif %}>
       <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background:rgba(59,130,246,0.1);">
@@ -103,7 +103,7 @@
     {% set is_locked = 'worksheet' in locked_types %}
     <button type="button" id="card-worksheet"
             {% if not is_locked %}onclick="selectType('worksheet')"{% endif %}
-            class="type-card{% if is_locked %} locked-card{% endif %} group flex flex-col items-center gap-3 p-6 text-left"
+            class="type-card{% if is_locked %} locked-card{% endif %} group flex flex-col items-center gap-3 p-4 md:p-6 text-left"
             style="background:var(--glass-bg);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);border:2px solid var(--glass-border);border-radius:var(--radius-lg);box-shadow:var(--glass-shadow);"
             {% if is_locked %}title="Verify your school email to unlock"{% endif %}>
       <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background:rgba(34,197,94,0.1);">
@@ -130,7 +130,7 @@
     {% set is_locked = 'scheme' in locked_types %}
     <button type="button" id="card-scheme"
             {% if not is_locked %}onclick="selectType('scheme')"{% endif %}
-            class="type-card{% if is_locked %} locked-card{% endif %} group flex flex-col items-center gap-3 p-6 text-left"
+            class="type-card{% if is_locked %} locked-card{% endif %} group flex flex-col items-center gap-3 p-4 md:p-6 text-left"
             style="background:var(--glass-bg);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);border:2px solid var(--glass-border);border-radius:var(--radius-lg);box-shadow:var(--glass-shadow);"
             {% if is_locked %}title="Verify your school email to unlock"{% endif %}>
       <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background:rgba(168,85,247,0.1);">
@@ -157,7 +157,7 @@
     {% set is_locked = 'slides' in locked_types %}
     <button type="button" id="card-slides"
             {% if not is_locked %}onclick="selectType('slides')"{% endif %}
-            class="type-card{% if is_locked %} locked-card{% endif %} group flex flex-col items-center gap-3 p-6 text-left"
+            class="type-card{% if is_locked %} locked-card{% endif %} group flex flex-col items-center gap-3 p-4 md:p-6 text-left"
             style="background:var(--glass-bg);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);border:2px solid var(--glass-border);border-radius:var(--radius-lg);box-shadow:var(--glass-shadow);"
             {% if is_locked %}title="Verify your school email to unlock"{% endif %}>
       <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background:rgba(249,115,22,0.1);">

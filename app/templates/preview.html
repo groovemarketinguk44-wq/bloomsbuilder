@@ -293,7 +293,9 @@
     </div>
 
     <!-- Right: export + save + history -->
-    <div class="flex flex-wrap items-center gap-2">
+
+    <!-- Desktop: all buttons visible -->
+    <div class="hidden md:flex flex-wrap items-center gap-2">
 
       <!-- Save button -->
       <button id="btn-save" onclick="saveResource('Manual save')" class="btn-primary">
@@ -353,6 +355,34 @@
       </a>
       {% endif %}
 
+    </div>
+
+    <!-- Mobile: Save + More dropdown -->
+    <div class="flex md:hidden items-center gap-2">
+      <button id="btn-save-mobile" onclick="saveResource('Manual save')" class="btn-primary">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/>
+        </svg>
+        Save
+      </button>
+
+      <div class="relative">
+        <button id="mobile-more-btn" onclick="toggleMobileMore()" class="btn-ghost">
+          &#8943; More
+        </button>
+        <div id="mobile-more-menu" class="hidden absolute right-0 top-full mt-1 glass rounded-xl shadow-xl border border-white/50 p-2 flex flex-col gap-1 min-w-[160px] z-50">
+          <button onclick="toggleHistory(); toggleMobileMore();" class="text-left px-3 py-2 rounded-lg text-sm hover:bg-white/40 transition-colors" style="color:#40657b;">&#x1F550; History</button>
+          <button onclick="window.print(); toggleMobileMore();" class="text-left px-3 py-2 rounded-lg text-sm hover:bg-white/40 transition-colors" style="color:#40657b;">&#x1F5A8; Print</button>
+          <a href="/export/{{ resource.id }}/pdf" class="px-3 py-2 rounded-lg text-sm block hover:bg-white/40 transition-colors" style="color:#ef4444;">&#x1F4C4; Export PDF</a>
+          {% if resource.type in ['lesson', 'worksheet', 'scheme'] %}
+          <a href="/export/{{ resource.id }}/docx" class="px-3 py-2 rounded-lg text-sm block hover:bg-white/40 transition-colors" style="color:#5f9cb3;">&#x1F4DD; Export DOCX</a>
+          {% endif %}
+          {% if resource.type == 'slides' %}
+          <a href="/export/{{ resource.id }}/pptx" class="px-3 py-2 rounded-lg text-sm block hover:bg-white/40 transition-colors" style="color:#f97316;">&#x1F4CA; Export PPTX</a>
+          {% endif %}
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -1188,6 +1218,16 @@
     document.getElementById('history-overlay').style.display = historyOpen ? 'block' : 'none';
     if (historyOpen) loadVersions();
   }
+
+  function toggleMobileMore() {
+    document.getElementById('mobile-more-menu').classList.toggle('hidden');
+  }
+  document.addEventListener('click', function(e) {
+    const menu = document.getElementById('mobile-more-menu');
+    if (menu && !e.target.closest('#mobile-more-btn') && !e.target.closest('#mobile-more-menu')) {
+      menu.classList.add('hidden');
+    }
+  });
 
   async function loadVersions() {
     const list = document.getElementById('history-list');

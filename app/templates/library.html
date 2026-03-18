@@ -39,7 +39,7 @@
 
 <!-- Resource grid -->
 {% if resources %}
-<div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4" id="resource-grid">
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" id="resource-grid">
   {% for resource in resources %}
   <div id="resource-card-{{ resource.id }}"
        class="group flex flex-col transition-all duration-150"

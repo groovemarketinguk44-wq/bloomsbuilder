@@ -45,16 +45,41 @@
     }
 
     body {
-      background: linear-gradient(135deg, #ddeef5 0%, #eaf4f8 35%, #d8eaf2 70%, #e4f0f6 100%);
       min-height: 100vh;
+      background: #d8ecf3;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 20% 10%, rgba(95,156,179,0.45) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 70% at 80% 80%, rgba(64,101,123,0.35) 0%, transparent 55%),
+        radial-gradient(ellipse 70% 50% at 60% 30%, rgba(95,156,179,0.2) 0%, transparent 50%),
+        radial-gradient(ellipse 90% 80% at 10% 70%, rgba(64,101,123,0.15) 0%, transparent 60%),
+        linear-gradient(160deg, #cce6f0 0%, #daeef5 30%, #c8dfe9 60%, #d4eaf3 100%);
+      z-index: -1;
+      animation: bgShift 18s ease-in-out infinite alternate;
+    }
+
+    @keyframes bgShift {
+      0% { opacity: 1; filter: hue-rotate(0deg); }
+      50% { opacity: 0.92; filter: hue-rotate(8deg); }
+      100% { opacity: 1; filter: hue-rotate(0deg); }
     }
 
     .glass {
-      background: var(--glass-bg);
-      backdrop-filter: var(--glass-blur);
-      -webkit-backdrop-filter: var(--glass-blur);
-      border: 1px solid var(--glass-border);
-      box-shadow: var(--glass-shadow);
+      background: rgba(255, 255, 255, 0.62);
+      backdrop-filter: blur(24px) saturate(1.4);
+      -webkit-backdrop-filter: blur(24px) saturate(1.4);
+      border: 1px solid rgba(255, 255, 255, 0.7);
+      box-shadow:
+        0 8px 32px rgba(64, 101, 123, 0.12),
+        0 2px 8px rgba(95, 156, 179, 0.08),
+        inset 0 1px 0 rgba(255, 255, 255, 0.8);
     }
 
     .glass-dark {
@@ -164,8 +189,8 @@
   </div>
 
   <!-- Navigation -->
-  <nav style="background: rgba(255,255,255,0.82); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border-bottom: 1px solid rgba(95,156,179,0.15); position: sticky; top: 0; z-index: 50;">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+  <nav style="background: rgba(255,255,255,0.75); backdrop-filter: blur(28px) saturate(1.5); -webkit-backdrop-filter: blur(28px) saturate(1.5); border-bottom: 1px solid rgba(255,255,255,0.6); position: sticky; top: 0; z-index: 50;">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" style="position:relative;">
       <div class="flex items-center justify-between h-16">
 
         <!-- Logo -->
@@ -179,8 +204,8 @@
           <span class="text-lg font-bold" style="color:#2e4e61;">BloomsBuilder</span>
         </a>
 
-        <!-- Nav links -->
-        <div class="flex items-center gap-1">
+        <!-- Desktop nav links -->
+        <div class="hidden md:flex items-center gap-1">
           {% if current_user %}
             <a href="/"
                class="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
@@ -218,7 +243,34 @@
           {% endif %}
         </div>
 
+        <!-- Mobile hamburger -->
+        <button id="mobile-menu-btn" class="md:hidden flex flex-col gap-1.5 p-2 rounded-lg transition-colors hover:bg-white/30" onclick="toggleMobileMenu()" aria-label="Menu">
+          <span class="block w-5 h-0.5 rounded" style="background:#40657b;"></span>
+          <span class="block w-5 h-0.5 rounded" style="background:#40657b;"></span>
+          <span class="block w-5 h-0.5 rounded" style="background:#40657b;"></span>
+        </button>
+
       </div>
+
+      <!-- Mobile menu dropdown -->
+      <div id="mobile-menu" class="md:hidden hidden absolute top-full left-0 right-0 glass border-t border-white/30 shadow-lg" style="margin-left:-1rem;margin-right:-1rem;">
+        <div class="p-4 flex flex-col gap-1">
+          {% if current_user %}
+            <a href="/" class="px-4 py-3 rounded-lg text-sm font-medium" style="color:#40657b;">Generate</a>
+            <a href="/library" class="px-4 py-3 rounded-lg text-sm font-medium" style="color:#40657b;">Library</a>
+            {% if current_user.role == 'admin' %}
+            <a href="/admin" class="px-4 py-3 rounded-lg text-sm font-medium" style="color:#40657b;">Admin</a>
+            {% endif %}
+            <hr style="border-color:rgba(95,156,179,0.2);">
+            <span class="px-4 py-2 text-sm" style="color:#5f9cb3;">{{ current_user.first_name }}</span>
+            <a href="/logout" class="px-4 py-3 rounded-lg text-sm font-medium" style="color:#dc2626;">Log out</a>
+          {% else %}
+            <a href="/login" class="px-4 py-3 rounded-lg text-sm font-medium" style="color:#40657b;">Log in</a>
+            <a href="/signup" class="btn-primary justify-center">Sign up</a>
+          {% endif %}
+        </div>
+      </div>
+
     </div>
   </nav>
 
@@ -244,6 +296,19 @@
         form.addEventListener('htmx:afterRequest', function () {
           document.getElementById('loading-overlay').classList.remove('active');
         });
+      }
+    });
+
+    function toggleMobileMenu() {
+      const menu = document.getElementById('mobile-menu');
+      menu.classList.toggle('hidden');
+    }
+    // Close mobile menu on outside click
+    document.addEventListener('click', function(e) {
+      const menu = document.getElementById('mobile-menu');
+      const btn = document.getElementById('mobile-menu-btn');
+      if (menu && btn && !menu.contains(e.target) && !e.target.closest('#mobile-menu-btn')) {
+        menu.classList.add('hidden');
       }
     });
   </script>
