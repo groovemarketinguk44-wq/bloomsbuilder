@@ -193,7 +193,8 @@
     <form id="generate-form"
           hx-post="/generate"
           hx-target="body"
-          hx-swap="none">
+          hx-swap="none"
+          hx-encoding="multipart/form-data">
 
       <!-- Hidden resource type -->
       <input type="hidden" id="resource_type" name="resource_type" value="" />
@@ -247,6 +248,25 @@
                     placeholder="e.g. Include a group activity, focus on real-world applications, suitable for mixed-ability class…"
                     class="w-full px-4 py-2.5 rounded-lg text-sm resize-none transition-shadow placeholder:text-gray-300"
                     style="background:rgba(255,255,255,0.7);border:1px solid rgba(95,156,179,0.25);border-radius:var(--radius-sm);"></textarea>
+
+          <!-- File upload zone -->
+          <div id="upload-zone"
+               onclick="document.getElementById('file-input').click()"
+               ondragover="event.preventDefault();this.classList.add('drag-over')"
+               ondragleave="this.classList.remove('drag-over')"
+               ondrop="handleFileDrop(event)"
+               class="mt-3 flex flex-col items-center justify-center gap-2 cursor-pointer transition-all"
+               style="border:2px dashed rgba(95,156,179,0.4);border-radius:var(--radius-sm);padding:1rem;background:rgba(255,255,255,0.4);">
+            <svg class="w-6 h-6" style="color:#5f9cb3;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+            </svg>
+            <span class="text-xs font-medium" style="color:#5f9cb3;">Upload images or PDFs for context</span>
+            <span class="text-xs" style="color:#94a3b8;">click to browse or drag &amp; drop</span>
+          </div>
+          <input type="file" id="file-input" name="uploaded_files" multiple accept="image/*,.pdf"
+                 class="hidden" onchange="handleFileSelect(this.files)" />
+          <div id="file-list" class="mt-2 flex flex-wrap gap-2"></div>
         </div>
 
       </div>
@@ -290,6 +310,63 @@
     container.classList.remove('hidden');
     container.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
+
+  // File upload handling
+  const selectedFiles = new DataTransfer();
+
+  function handleFileSelect(files) {
+    for (const f of files) selectedFiles.items.add(f);
+    document.getElementById('file-input').files = selectedFiles.files;
+    renderFileList();
+  }
+
+  function handleFileDrop(event) {
+    event.preventDefault();
+    document.getElementById('upload-zone').classList.remove('drag-over');
+    handleFileSelect(event.dataTransfer.files);
+  }
+
+  function removeFile(index) {
+    const dt = new DataTransfer();
+    const files = selectedFiles.files;
+    for (let i = 0; i < files.length; i++) {
+      if (i !== index) dt.items.add(files[i]);
+    }
+    selectedFiles.items.clear();
+    for (const f of dt.files) selectedFiles.items.add(f);
+    document.getElementById('file-input').files = selectedFiles.files;
+    renderFileList();
+  }
+
+  function renderFileList() {
+    const list = document.getElementById('file-list');
+    list.innerHTML = '';
+    const files = selectedFiles.files;
+    for (let i = 0; i < files.length; i++) {
+      const f = files[i];
+      const isPdf = f.type === 'application/pdf';
+      const tag = document.createElement('div');
+      tag.className = 'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium';
+      tag.style = 'background:rgba(95,156,179,0.12);color:#40657b;border:1px solid rgba(95,156,179,0.25);';
+      tag.innerHTML = `
+        <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          ${isPdf
+            ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>'
+            : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>'}
+        </svg>
+        <span class="max-w-[160px] truncate">${f.name}</span>
+        <button type="button" onclick="removeFile(${i})" class="ml-1 hover:text-red-500 transition-colors">&times;</button>
+      `;
+      list.appendChild(tag);
+    }
+  }
+
+  // drag-over styling
+  document.addEventListener('DOMContentLoaded', function () {
+    const style = document.createElement('style');
+    style.textContent = '#upload-zone.drag-over{background:rgba(95,156,179,0.12)!important;border-color:rgba(95,156,179,0.7)!important;}';
+    document.head.appendChild(style);
+  });
 
   // Show loading overlay on form submit
   document.addEventListener('DOMContentLoaded', function () {

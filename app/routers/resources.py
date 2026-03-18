@@ -4,12 +4,13 @@ Resources Router
 Handles all routes for resource generation, preview, library, and export.
 """
 
+import base64
 import json
 import logging
 import os
-from typing import Optional
+from typing import List, Optional
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, Response, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
@@ -86,6 +87,7 @@ async def generate_resource(
     key_stage: str = Form(...),
     topic: str = Form(...),
     additional_instructions: str = Form(""),
+    uploaded_files: List[UploadFile] = File([]),
     db: Session = Depends(get_db),
 ):
     user = get_user_from_cookie(request, db)
@@ -140,12 +142,38 @@ async def generate_resource(
     if resource_type not in GENERATORS:
         raise HTTPException(status_code=422, detail=f"Unknown resource type: {resource_type}")
 
+    # Process uploaded files — extract base64 images and PDF text
+    uploaded_images: list[str] = []
+    pdf_texts: list[str] = []
+    for f in uploaded_files:
+        if not f.filename:
+            continue
+        data = await f.read()
+        if f.content_type and f.content_type.startswith("image/"):
+            mime = f.content_type
+            b64 = base64.b64encode(data).decode()
+            uploaded_images.append(f"data:{mime};base64,{b64}")
+        elif f.content_type == "application/pdf" or f.filename.lower().endswith(".pdf"):
+            try:
+                from pypdf import PdfReader
+                import io as _io
+                reader = PdfReader(_io.BytesIO(data))
+                text = "\n".join(page.extract_text() or "" for page in reader.pages)
+                if text.strip():
+                    pdf_texts.append(text.strip())
+            except Exception as exc:
+                logger.warning("Failed to extract PDF text: %s", exc)
+
+    pdf_context = "\n\n---\n\n".join(pdf_texts) if pdf_texts else ""
+
     generator = GENERATORS[resource_type]
     structured_data = await generator(
         subject=subject,
         key_stage=key_stage,
         topic=topic,
         additional_instructions=additional_instructions,
+        uploaded_images=uploaded_images,
+        pdf_text=pdf_context,
     )
 
     title = structured_data.get("title", f"{topic} – {RESOURCE_TYPE_LABELS.get(resource_type, resource_type)}")

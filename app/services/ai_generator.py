@@ -9,7 +9,7 @@ high-quality mock data otherwise so the app is fully usable offline.
 import os
 import json
 import logging
-from typing import Any
+from typing import Any, List
 
 logger = logging.getLogger(__name__)
 
@@ -32,19 +32,21 @@ KEY_STAGE_LABELS = {
 # Prompt builders
 # ---------------------------------------------------------------------------
 
-def _base_context(subject: str, key_stage: str, topic: str, additional: str) -> str:
+def _base_context(subject: str, key_stage: str, topic: str, additional: str, pdf_text: str = "") -> str:
     ks_label = KEY_STAGE_LABELS.get(key_stage, key_stage)
     extra = f"\nAdditional instructions: {additional}" if additional.strip() else ""
+    pdf_extra = f"\n\nContext from uploaded document(s):\n{pdf_text}" if pdf_text.strip() else ""
     return (
         f"Subject: {subject}\n"
         f"Key Stage: {ks_label}\n"
         f"Topic: {topic}"
         f"{extra}"
+        f"{pdf_extra}"
     )
 
 
-def _lesson_prompt(subject: str, key_stage: str, topic: str, additional: str) -> str:
-    ctx = _base_context(subject, key_stage, topic, additional)
+def _lesson_prompt(subject: str, key_stage: str, topic: str, additional: str, pdf_text: str = "") -> str:
+    ctx = _base_context(subject, key_stage, topic, additional, pdf_text)
     return f"""You are an expert UK curriculum educational resource designer.
 Create a detailed, classroom-ready lesson plan as a JSON object.
 Return ONLY valid JSON with no markdown fences, explanation, or extra text.
@@ -101,8 +103,8 @@ Return JSON with exactly this structure:
 }}"""
 
 
-def _worksheet_prompt(subject: str, key_stage: str, topic: str, additional: str) -> str:
-    ctx = _base_context(subject, key_stage, topic, additional)
+def _worksheet_prompt(subject: str, key_stage: str, topic: str, additional: str, pdf_text: str = "") -> str:
+    ctx = _base_context(subject, key_stage, topic, additional, pdf_text)
     return f"""You are an expert UK secondary school teacher creating a high-quality, classroom-ready worksheet.
 Return ONLY valid JSON. No markdown fences, no explanation, no extra text.
 
@@ -155,8 +157,8 @@ Return JSON with this structure:
     }}
   ]
 }}"""
-def _scheme_prompt(subject: str, key_stage: str, topic: str, additional: str) -> str:
-    ctx = _base_context(subject, key_stage, topic, additional)
+def _scheme_prompt(subject: str, key_stage: str, topic: str, additional: str, pdf_text: str = "") -> str:
+    ctx = _base_context(subject, key_stage, topic, additional, pdf_text)
     return f"""You are an expert UK curriculum educational resource designer.
 Create a 6-week Scheme of Work as a JSON object.
 Return ONLY valid JSON with no markdown fences, explanation, or extra text.
@@ -221,8 +223,8 @@ Return JSON with exactly this structure:
 }}"""
 
 
-def _slides_prompt(subject: str, key_stage: str, topic: str, additional: str) -> str:
-    ctx = _base_context(subject, key_stage, topic, additional)
+def _slides_prompt(subject: str, key_stage: str, topic: str, additional: str, pdf_text: str = "") -> str:
+    ctx = _base_context(subject, key_stage, topic, additional, pdf_text)
     return f"""You are an expert UK curriculum educational resource designer.
 Create a lesson slide outline (10 slides) as a JSON object.
 Return ONLY valid JSON with no markdown fences, explanation, or extra text.
@@ -574,11 +576,20 @@ def _mock_slides(subject: str, key_stage: str, topic: str, additional: str) -> d
 # Real AI API call
 # ---------------------------------------------------------------------------
 
-async def _call_ai_api(prompt: str) -> dict[str, Any]:
-    """Call OpenAI API and parse JSON response."""
+async def _call_ai_api(prompt: str, images: List[str] = None) -> dict[str, Any]:
+    """Call OpenAI API and parse JSON response. images is a list of data-URL strings."""
     from openai import AsyncOpenAI  # imported here so missing package doesn't break mock mode
 
     client = AsyncOpenAI(api_key=AI_API_KEY)
+
+    # Build user message content — text plus optional vision image blocks
+    if images:
+        user_content: Any = [{"type": "text", "text": prompt}]
+        for img_url in images:
+            user_content.append({"type": "image_url", "image_url": {"url": img_url}})
+    else:
+        user_content = prompt
+
     response = await client.chat.completions.create(
         model=AI_MODEL,
         max_tokens=4096,
@@ -591,7 +602,7 @@ async def _call_ai_api(prompt: str) -> dict[str, Any]:
                     "and no text outside the JSON object."
                 ),
             },
-            {"role": "user", "content": prompt},
+            {"role": "user", "content": user_content},
         ],
     )
     text = response.choices[0].message.content.strip()
@@ -609,48 +620,52 @@ async def _call_ai_api(prompt: str) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 async def generate_lesson(
-    subject: str, key_stage: str, topic: str, additional_instructions: str = ""
+    subject: str, key_stage: str, topic: str, additional_instructions: str = "",
+    uploaded_images: List[str] = None, pdf_text: str = "",
 ) -> dict[str, Any]:
     if AI_API_KEY:
         try:
-            prompt = _lesson_prompt(subject, key_stage, topic, additional_instructions)
-            return await _call_ai_api(prompt)
+            prompt = _lesson_prompt(subject, key_stage, topic, additional_instructions, pdf_text)
+            return await _call_ai_api(prompt, images=uploaded_images)
         except Exception as exc:
             logger.warning("AI API call failed, using mock data: %s", exc)
     return _mock_lesson(subject, key_stage, topic, additional_instructions)
 
 
 async def generate_worksheet(
-    subject: str, key_stage: str, topic: str, additional_instructions: str = ""
+    subject: str, key_stage: str, topic: str, additional_instructions: str = "",
+    uploaded_images: List[str] = None, pdf_text: str = "",
 ) -> dict[str, Any]:
     if AI_API_KEY:
         try:
-            prompt = _worksheet_prompt(subject, key_stage, topic, additional_instructions)
-            return await _call_ai_api(prompt)
+            prompt = _worksheet_prompt(subject, key_stage, topic, additional_instructions, pdf_text)
+            return await _call_ai_api(prompt, images=uploaded_images)
         except Exception as exc:
             logger.warning("AI API call failed, using mock data: %s", exc)
     return _mock_worksheet(subject, key_stage, topic, additional_instructions)
 
 
 async def generate_scheme(
-    subject: str, key_stage: str, topic: str, additional_instructions: str = ""
+    subject: str, key_stage: str, topic: str, additional_instructions: str = "",
+    uploaded_images: List[str] = None, pdf_text: str = "",
 ) -> dict[str, Any]:
     if AI_API_KEY:
         try:
-            prompt = _scheme_prompt(subject, key_stage, topic, additional_instructions)
-            return await _call_ai_api(prompt)
+            prompt = _scheme_prompt(subject, key_stage, topic, additional_instructions, pdf_text)
+            return await _call_ai_api(prompt, images=uploaded_images)
         except Exception as exc:
             logger.warning("AI API call failed, using mock data: %s", exc)
     return _mock_scheme(subject, key_stage, topic, additional_instructions)
 
 
 async def generate_slides(
-    subject: str, key_stage: str, topic: str, additional_instructions: str = ""
+    subject: str, key_stage: str, topic: str, additional_instructions: str = "",
+    uploaded_images: List[str] = None, pdf_text: str = "",
 ) -> dict[str, Any]:
     if AI_API_KEY:
         try:
-            prompt = _slides_prompt(subject, key_stage, topic, additional_instructions)
-            return await _call_ai_api(prompt)
+            prompt = _slides_prompt(subject, key_stage, topic, additional_instructions, pdf_text)
+            return await _call_ai_api(prompt, images=uploaded_images)
         except Exception as exc:
             logger.warning("AI API call failed, using mock data: %s", exc)
     return _mock_slides(subject, key_stage, topic, additional_instructions)
