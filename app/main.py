@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 from app.database import engine, Base, SessionLocal
 from app.routers import resources
 from app.routers import auth as auth_router
+from app.models import User, Resource, ResourceVersion  # noqa: F401 — ensure all models registered
 
 load_dotenv()
 

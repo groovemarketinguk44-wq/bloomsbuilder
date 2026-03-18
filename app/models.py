@@ -1,5 +1,6 @@
 from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, Text, DateTime
 from sqlalchemy.sql import func
+from sqlalchemy.orm import relationship
 from app.database import Base
 
 
@@ -32,3 +33,23 @@ class Resource(Base):
     input_prompt = Column(Text, nullable=False)
     structured_output = Column(Text, nullable=False)  # JSON string
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    versions = relationship(
+        "ResourceVersion",
+        back_populates="resource",
+        cascade="all, delete-orphan",
+        order_by="ResourceVersion.created_at.desc()",
+    )
+
+
+class ResourceVersion(Base):
+    __tablename__ = "resource_versions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    resource_id = Column(Integer, ForeignKey("resources.id"), nullable=False)
+    structured_output = Column(Text, nullable=False)
+    title = Column(String(255), nullable=True)
+    label = Column(String(100), nullable=False, default="Auto-save")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    resource = relationship("Resource", back_populates="versions")

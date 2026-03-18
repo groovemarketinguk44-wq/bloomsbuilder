@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session
 import io
 
 from app.database import get_db
-from app.models import Resource
+from app.models import Resource, ResourceVersion
 from app.services.ai_generator import GENERATORS
 from app.services.export_service import export_pdf, export_docx, export_pptx
 from app.auth_utils import get_user_from_cookie
@@ -330,3 +330,152 @@ async def export_resource_pptx(resource_id: int, request: Request, db: Session =
         media_type="application/vnd.openxmlformats-officedocument.presentationml.presentation",
         headers={"Content-Disposition": f'attachment; filename="{safe_title}.pptx"'},
     )
+
+
+# ---------------------------------------------------------------------------
+# Editor: PATCH /resources/{resource_id} — save edits
+# ---------------------------------------------------------------------------
+
+@router.patch("/resources/{resource_id}")
+async def patch_resource(resource_id: int, request: Request, db: Session = Depends(get_db)):
+    user = get_user_from_cookie(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    resource = db.query(Resource).filter(Resource.id == resource_id).first()
+    if not resource:
+        raise HTTPException(status_code=404, detail="Resource not found")
+    if user.role != "admin" and resource.user_id != user.id:
+        raise HTTPException(status_code=403, detail="Not authorised")
+
+    body = await request.json()
+    new_output = body.get("structured_output")
+    new_title = body.get("title")
+    label = body.get("label", "Manual save")
+
+    # Save previous state as a version BEFORE overwriting
+    version = ResourceVersion(
+        resource_id=resource.id,
+        structured_output=resource.structured_output,
+        title=resource.title,
+        label=label,
+    )
+    db.add(version)
+    db.flush()  # get version.id
+
+    # Overwrite resource
+    if new_output is not None:
+        resource.structured_output = new_output
+    if new_title is not None:
+        resource.title = new_title
+
+    db.commit()
+    db.refresh(version)
+
+    # Prune: keep max 20 versions per resource
+    all_versions = (
+        db.query(ResourceVersion)
+        .filter(ResourceVersion.resource_id == resource_id)
+        .order_by(ResourceVersion.created_at.desc())
+        .all()
+    )
+    if len(all_versions) > 20:
+        for old in all_versions[20:]:
+            db.delete(old)
+        db.commit()
+
+    return {"ok": True, "version_id": version.id}
+
+
+# ---------------------------------------------------------------------------
+# Editor: GET /resources/{resource_id}/versions — list versions
+# ---------------------------------------------------------------------------
+
+@router.get("/resources/{resource_id}/versions")
+async def list_versions(resource_id: int, request: Request, db: Session = Depends(get_db)):
+    user = get_user_from_cookie(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    resource = db.query(Resource).filter(Resource.id == resource_id).first()
+    if not resource:
+        raise HTTPException(status_code=404, detail="Resource not found")
+    if user.role != "admin" and resource.user_id != user.id:
+        raise HTTPException(status_code=403, detail="Not authorised")
+
+    versions = (
+        db.query(ResourceVersion)
+        .filter(ResourceVersion.resource_id == resource_id)
+        .order_by(ResourceVersion.created_at.desc())
+        .all()
+    )
+
+    return [
+        {
+            "id": v.id,
+            "label": v.label,
+            "title": v.title,
+            "created_at": v.created_at.isoformat() if v.created_at else None,
+        }
+        for v in versions
+    ]
+
+
+# ---------------------------------------------------------------------------
+# Editor: POST /resources/{resource_id}/versions/{version_id}/restore
+# ---------------------------------------------------------------------------
+
+@router.post("/resources/{resource_id}/versions/{version_id}/restore")
+async def restore_version(
+    resource_id: int,
+    version_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    user = get_user_from_cookie(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    resource = db.query(Resource).filter(Resource.id == resource_id).first()
+    if not resource:
+        raise HTTPException(status_code=404, detail="Resource not found")
+    if user.role != "admin" and resource.user_id != user.id:
+        raise HTTPException(status_code=403, detail="Not authorised")
+
+    target = (
+        db.query(ResourceVersion)
+        .filter(ResourceVersion.id == version_id, ResourceVersion.resource_id == resource_id)
+        .first()
+    )
+    if not target:
+        raise HTTPException(status_code=404, detail="Version not found")
+
+    # Save current state as "Before restore"
+    before = ResourceVersion(
+        resource_id=resource.id,
+        structured_output=resource.structured_output,
+        title=resource.title,
+        label="Before restore",
+    )
+    db.add(before)
+
+    # Apply restore
+    resource.structured_output = target.structured_output
+    if target.title:
+        resource.title = target.title
+
+    db.commit()
+
+    # Prune versions
+    all_versions = (
+        db.query(ResourceVersion)
+        .filter(ResourceVersion.resource_id == resource_id)
+        .order_by(ResourceVersion.created_at.desc())
+        .all()
+    )
+    if len(all_versions) > 20:
+        for old in all_versions[20:]:
+            db.delete(old)
+        db.commit()
+
+    return {"ok": True}

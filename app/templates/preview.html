@@ -4,87 +4,376 @@
 
 {% block head %}
 <style>
+  /* ── Print ── */
   @media print {
     .no-print { display: none !important; }
     .print-only { display: block !important; }
     body { background: white; }
     .prose-section { page-break-inside: avoid; }
+    [contenteditable] { outline: none !important; }
+    .drag-handle, .btn-delete-section, .btn-add-item, .btn-add-section { display: none !important; }
+  }
+
+  /* ── Editor chrome ── */
+  .editor-action-bar {
+    position: sticky;
+    top: 64px; /* below nav */
+    z-index: 40;
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(95,156,179,0.15);
+    padding: 0.5rem 0;
+    margin-bottom: 1rem;
+  }
+
+  /* ── Dirty badge ── */
+  #dirty-badge {
+    display: none;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    transition: all 0.3s;
+  }
+  #dirty-badge.dirty {
+    display: inline-block;
+    background: rgba(245,158,11,0.12);
+    color: #b45309;
+    border: 1px solid rgba(245,158,11,0.3);
+  }
+  #dirty-badge.saved {
+    display: inline-block;
+    background: rgba(34,197,94,0.12);
+    color: #15803d;
+    border: 1px solid rgba(34,197,94,0.3);
+  }
+
+  #last-saved-text {
+    font-size: 0.7rem;
+    color: rgba(95,156,179,0.6);
+  }
+
+  /* ── Contenteditable ── */
+  [contenteditable="true"] {
+    outline: none;
+    border-radius: 4px;
+    transition: background 0.15s, box-shadow 0.15s;
+    min-width: 20px;
+    cursor: text;
+  }
+  [contenteditable="true"]:hover {
+    background: rgba(95,156,179,0.07);
+  }
+  [contenteditable="true"]:focus {
+    background: rgba(95,156,179,0.1);
+    box-shadow: 0 0 0 2px rgba(95,156,179,0.35);
+  }
+
+  /* ── Drag handles ── */
+  .drag-handle {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px;
+    width: 16px;
+    height: 24px;
+    padding: 2px;
+    cursor: grab;
+    color: rgba(95,156,179,0.4);
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .drag-handle:active { cursor: grabbing; }
+  .drag-handle span {
+    display: block;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+  .draggable-section:hover .drag-handle,
+  .draggable-item:hover .drag-handle {
+    opacity: 1;
+  }
+
+  /* ── Dragging state ── */
+  .dragging { opacity: 0.4; }
+  .drag-over-top {
+    border-top: 3px solid #5f9cb3 !important;
+  }
+  .drag-over-bottom {
+    border-bottom: 3px solid #5f9cb3 !important;
+  }
+
+  /* ── Delete buttons ── */
+  .btn-delete-section {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: rgba(200,50,50,0.5);
+    border-radius: 4px;
+    transition: color 0.15s, background 0.15s;
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity 0.15s, color 0.15s, background 0.15s;
+  }
+  .draggable-section:hover .btn-delete-section,
+  .draggable-item:hover .btn-delete-section {
+    opacity: 1;
+  }
+  .btn-delete-section:hover {
+    color: #dc2626;
+    background: rgba(220,38,38,0.08);
+  }
+
+  /* ── Add item buttons ── */
+  .btn-add-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #5f9cb3;
+    background: none;
+    border: 1px dashed rgba(95,156,179,0.4);
+    border-radius: var(--radius-sm);
+    padding: 0.3rem 0.75rem;
+    cursor: pointer;
+    margin-top: 0.75rem;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .btn-add-item:hover {
+    border-color: #5f9cb3;
+    background: rgba(95,156,179,0.06);
+  }
+
+  .btn-add-section {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: #5f9cb3;
+    background: none;
+    border: 1px dashed rgba(95,156,179,0.4);
+    border-radius: var(--radius-md);
+    padding: 0.6rem 1rem;
+    cursor: pointer;
+    margin-top: 1rem;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .btn-add-section:hover {
+    border-color: #5f9cb3;
+    background: rgba(95,156,179,0.06);
+  }
+
+  /* ── Version history drawer ── */
+  #history-drawer {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 320px;
+    height: 100vh;
+    background: rgba(255,255,255,0.97);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-left: 1px solid rgba(95,156,179,0.2);
+    box-shadow: -4px 0 24px rgba(64,101,123,0.12);
+    z-index: 200;
+    transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+    display: flex;
+    flex-direction: column;
+  }
+  #history-drawer.open {
+    transform: translateX(0);
+  }
+  #history-drawer-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid rgba(95,156,179,0.15);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  #history-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.75rem;
+  }
+  .version-item {
+    padding: 0.6rem 0.75rem;
+    border-radius: var(--radius-sm);
+    margin-bottom: 0.4rem;
+    border: 1px solid rgba(95,156,179,0.12);
+    background: rgba(255,255,255,0.7);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+  .version-item:hover { background: rgba(95,156,179,0.06); }
+  .version-meta { font-size: 0.7rem; color: rgba(95,156,179,0.7); }
+  .version-label { font-size: 0.8rem; font-weight: 500; color: #2e4e61; }
+  .btn-restore {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #5f9cb3;
+    background: rgba(95,156,179,0.1);
+    border: 1px solid rgba(95,156,179,0.2);
+    border-radius: 4px;
+    padding: 0.2rem 0.5rem;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: background 0.15s;
+  }
+  .btn-restore:hover { background: rgba(95,156,179,0.2); }
+
+  /* ── Draggable item wrapper ── */
+  .draggable-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    position: relative;
+  }
+  .draggable-item > .item-body {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* ── Section wrapper ── */
+  .draggable-section {
+    position: relative;
+  }
+  .section-drag-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.4rem;
+  }
+  .section-drag-row > .section-body {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* ── Worksheet question wrapper ── */
+  .question-wrapper {
+    position: relative;
   }
 </style>
 {% endblock %}
 
 {% block content %}
 
-<!-- Action bar -->
-<div class="no-print flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-  <div class="flex items-center gap-2">
-    <a href="/library"
-       class="btn-ghost">
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
-      </svg>
-      Library
-    </a>
-    <span style="color:rgba(95,156,179,0.4);">/</span>
-    <span class="text-sm" style="color:#5f9cb3;">{{ resource_type_labels.get(resource.type, resource.type) }}</span>
-  </div>
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- Editor action bar (sticky below nav)                                    -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="editor-action-bar no-print -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8">
+  <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
 
-  <!-- Export buttons -->
-  <div class="flex flex-wrap items-center gap-2">
-    <button onclick="window.print()"
-            class="btn-ghost">
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
-      </svg>
-      Print
-    </button>
+    <!-- Left: breadcrumb + dirty badge -->
+    <div class="flex items-center gap-2 flex-wrap">
+      <a href="/library" class="btn-ghost">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+        </svg>
+        Library
+      </a>
+      <span style="color:rgba(95,156,179,0.4);">/</span>
+      <span class="text-sm" style="color:#5f9cb3;">{{ resource_type_labels.get(resource.type, resource.type) }}</span>
+      <span id="dirty-badge"></span>
+      <span id="last-saved-text"></span>
+    </div>
 
-    <a href="/export/{{ resource.id }}/pdf"
-       class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg transition-colors"
-       style="color:#ef4444;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:var(--radius-sm);">
-      <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-        <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clip-rule="evenodd"/>
-      </svg>
-      Export PDF
-    </a>
+    <!-- Right: export + save + history -->
+    <div class="flex flex-wrap items-center gap-2">
 
-    {% if resource.type in ['lesson', 'worksheet', 'scheme'] %}
-    <a href="/export/{{ resource.id }}/docx"
-       class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg transition-colors"
-       style="color:#5f9cb3;background:rgba(95,156,179,0.1);border:1px solid rgba(95,156,179,0.25);border-radius:var(--radius-sm);">
-      <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-        <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clip-rule="evenodd"/>
-      </svg>
-      Export DOCX
-    </a>
-    {% endif %}
+      <!-- Save button -->
+      <button id="btn-save" onclick="saveResource('Manual save')" class="btn-primary">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/>
+        </svg>
+        Save
+      </button>
 
-    {% if resource.type == 'slides' %}
-    <a href="/export/{{ resource.id }}/pptx"
-       class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg transition-colors"
-       style="color:#f97316;background:rgba(249,115,22,0.1);border:1px solid rgba(249,115,22,0.25);border-radius:var(--radius-sm);">
-      <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-        <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clip-rule="evenodd"/>
-      </svg>
-      Export PPTX
-    </a>
-    {% endif %}
+      <!-- History button -->
+      <button onclick="toggleHistory()" class="btn-ghost">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        History
+      </button>
+
+      <!-- Print -->
+      <button onclick="window.print()" class="btn-ghost">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+        </svg>
+        Print
+      </button>
+
+      <a href="/export/{{ resource.id }}/pdf"
+         class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg transition-colors"
+         style="color:#ef4444;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:var(--radius-sm);">
+        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clip-rule="evenodd"/>
+        </svg>
+        PDF
+      </a>
+
+      {% if resource.type in ['lesson', 'worksheet', 'scheme'] %}
+      <a href="/export/{{ resource.id }}/docx"
+         class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg transition-colors"
+         style="color:#5f9cb3;background:rgba(95,156,179,0.1);border:1px solid rgba(95,156,179,0.25);border-radius:var(--radius-sm);">
+        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clip-rule="evenodd"/>
+        </svg>
+        DOCX
+      </a>
+      {% endif %}
+
+      {% if resource.type == 'slides' %}
+      <a href="/export/{{ resource.id }}/pptx"
+         class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg transition-colors"
+         style="color:#f97316;background:rgba(249,115,22,0.1);border:1px solid rgba(249,115,22,0.25);border-radius:var(--radius-sm);">
+        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clip-rule="evenodd"/>
+        </svg>
+        PPTX
+      </a>
+      {% endif %}
+
+    </div>
   </div>
 </div>
 
-<!-- Resource header card -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- Resource header card                                                     -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
 <div class="glass p-6 mb-6" style="border-radius:var(--radius-lg);">
-  <div class="flex flex-wrap items-start justify-between gap-4">
-    <div>
+  <div class="flex items-start justify-between gap-4">
+    <div class="flex-1 min-w-0">
       <div class="flex items-center gap-2 mb-2">
         <span class="px-2.5 py-1 rounded-md text-xs font-medium uppercase tracking-wide"
               style="background:rgba(95,156,179,0.12);color:#40657b;">
           {{ resource_type_labels.get(resource.type, resource.type) }}
         </span>
       </div>
-      <h1 class="text-2xl font-bold mb-1" style="color:#2e4e61;">{{ data.get('title', resource.title) }}</h1>
-      <div class="flex flex-wrap items-center gap-4 text-sm" style="color:#5f9cb3;">
+      <h1 class="text-2xl font-bold mb-1" style="color:#2e4e61;"
+          contenteditable="true"
+          data-field="title"
+          data-original="{{ data.get('title', resource.title) | e }}">{{ data.get('title', resource.title) }}</h1>
+      <div class="flex flex-wrap items-center gap-4 text-sm mt-2" style="color:#5f9cb3;">
         <span class="flex items-center gap-1.5">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -98,20 +387,6 @@
           </svg>
           {{ resource.key_stage }}
         </span>
-        <span class="flex items-center gap-1.5">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-          </svg>
-          {{ resource.topic }}
-        </span>
-        {% if data.get('duration') %}
-        <span class="flex items-center gap-1.5">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-          </svg>
-          {{ data.get('duration') }}
-        </span>
-        {% endif %}
         <span class="text-xs" style="color:rgba(95,156,179,0.6);">Generated {{ resource.created_at.strftime('%d %b %Y, %H:%M') }}</span>
       </div>
     </div>
@@ -125,93 +400,126 @@
 {% if resource.type == 'lesson' %}
 
   <!-- Learning Objectives -->
-  <div class="glass p-6 mb-4 prose-section" style="border-radius:var(--radius-lg);">
+  <div class="glass p-6 mb-4 prose-section" style="border-radius:var(--radius-lg);" data-type="lesson-objectives-card">
     <h2 class="text-base font-semibold mb-3 flex items-center gap-2" style="color:#2e4e61;">
       <span class="w-6 h-6 rounded flex items-center justify-center text-xs font-bold" style="background:rgba(59,130,246,0.12);color:#3b82f6;">1</span>
       Learning Objectives
     </h2>
-    <ul class="space-y-2">
+    <ul class="space-y-2" id="objectives-list">
       {% for obj in data.get('learning_objectives', []) %}
-      <li class="flex items-start gap-2 text-sm" style="color:#40657b;">
-        <svg class="w-4 h-4 mt-0.5 flex-shrink-0" style="color:#5f9cb3;" fill="currentColor" viewBox="0 0 20 20">
-          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-        </svg>
-        {{ obj }}
+      <li class="draggable-item" draggable="true" data-type="objective">
+        <span class="drag-handle mt-0.5">{% for i in range(6) %}<span></span>{% endfor %}</span>
+        <div class="item-body flex items-start gap-2 text-sm" style="color:#40657b;">
+          <svg class="w-4 h-4 mt-0.5 flex-shrink-0" style="color:#5f9cb3;" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+          </svg>
+          <span contenteditable="true" data-field="objective">{{ obj }}</span>
+        </div>
+        <button class="btn-delete-section mt-0.5" onclick="deleteItem(this)" title="Delete objective">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
       </li>
       {% endfor %}
     </ul>
+    <button class="btn-add-item" onclick="addObjective()">+ Add objective</button>
   </div>
 
   <!-- Lesson Sections -->
-  <div class="mb-4">
+  <div class="mb-4" id="lesson-sections-wrapper">
     <h2 class="text-base font-semibold mb-3 flex items-center gap-2" style="color:#2e4e61;">
       <span class="w-6 h-6 rounded flex items-center justify-center text-xs font-bold" style="background:rgba(59,130,246,0.12);color:#3b82f6;">2</span>
       Lesson Sections
     </h2>
-    <div class="space-y-3">
+    <div class="space-y-3" id="lesson-sections-list">
       {% for section in data.get('sections', []) %}
-      <div class="glass p-5 prose-section" style="border-radius:var(--radius-md);">
-        <div class="flex items-center justify-between mb-3">
-          <div class="flex items-center gap-2">
-            <h3 class="font-semibold text-sm" style="color:#2e4e61;">{{ section.get('title', '') }}</h3>
-            {% if section.get('duration') %}
-            <span class="text-xs px-2 py-0.5 rounded-full" style="color:#5f9cb3;background:rgba(95,156,179,0.1);">{{ section.get('duration') }}</span>
-            {% endif %}
+      <div class="draggable-section" draggable="true" data-type="lesson-section">
+        <div class="section-drag-row">
+          <span class="drag-handle mt-4">{% for i in range(6) %}<span></span>{% endfor %}</span>
+          <div class="section-body glass p-5 prose-section" style="border-radius:var(--radius-md);">
+            <div class="flex items-center justify-between mb-3">
+              <div class="flex items-center gap-2 flex-1 min-w-0">
+                <h3 class="font-semibold text-sm" style="color:#2e4e61;"
+                    contenteditable="true" data-field="section-title">{{ section.get('title', '') }}</h3>
+                <span class="text-xs px-2 py-0.5 rounded-full flex-shrink-0"
+                      style="color:#5f9cb3;background:rgba(95,156,179,0.1);"
+                      contenteditable="true" data-field="section-duration">{{ section.get('duration', '') }}</span>
+              </div>
+              <button class="btn-delete-section" onclick="deleteSection(this)" title="Delete section">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+              </button>
+            </div>
+            <p class="text-sm mb-3" style="color:#40657b;"
+               contenteditable="true" data-field="section-activity">{{ section.get('activity', '') }}</p>
+            <div class="flex items-start gap-2 rounded-lg p-3" style="background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.2);">
+              <svg class="w-4 h-4 flex-shrink-0 mt-0.5" style="color:#d97706;" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+              </svg>
+              <p class="text-xs flex-1" style="color:#92400e;">
+                <strong>Teacher notes:</strong>
+                <span contenteditable="true" data-field="section-notes">{{ section.get('teacher_notes', '') }}</span>
+              </p>
+            </div>
           </div>
         </div>
-        <p class="text-sm mb-3" style="color:#40657b;">{{ section.get('activity', '') }}</p>
-        {% if section.get('teacher_notes') %}
-        <div class="flex items-start gap-2 rounded-lg p-3" style="background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.2);">
-          <svg class="w-4 h-4 flex-shrink-0 mt-0.5" style="color:#d97706;" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-          </svg>
-          <p class="text-xs" style="color:#92400e;"><strong>Teacher notes:</strong> {{ section.get('teacher_notes', '') }}</p>
-        </div>
-        {% endif %}
       </div>
       {% endfor %}
     </div>
+    <button class="btn-add-section" onclick="addLessonSection()">+ Add section</button>
   </div>
 
   <!-- Resources & Differentiation grid -->
   <div class="grid md:grid-cols-2 gap-4 mb-4">
     <div class="glass p-5" style="border-radius:var(--radius-md);">
       <h2 class="text-sm font-semibold mb-3" style="color:#2e4e61;">Resources Needed</h2>
-      <ul class="space-y-1.5">
+      <ul class="space-y-1.5" id="resources-needed-list">
         {% for r in data.get('resources_needed', []) %}
-        <li class="flex items-center gap-2 text-sm" style="color:#40657b;">
-          <span class="w-1.5 h-1.5 rounded-full flex-shrink-0" style="background:#5f9cb3;"></span>
-          {{ r }}
+        <li class="draggable-item" draggable="true" data-type="resource-needed">
+          <span class="drag-handle mt-0.5">{% for i in range(6) %}<span></span>{% endfor %}</span>
+          <div class="item-body flex items-center gap-2 text-sm" style="color:#40657b;">
+            <span class="w-1.5 h-1.5 rounded-full flex-shrink-0" style="background:#5f9cb3;"></span>
+            <span contenteditable="true" data-field="resource-needed">{{ r }}</span>
+          </div>
+          <button class="btn-delete-section" onclick="deleteItem(this)" title="Delete">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
         </li>
         {% endfor %}
       </ul>
+      <button class="btn-add-item" onclick="addListItem('resources-needed-list','resource-needed','New resource')">+ Add resource</button>
     </div>
 
     <div class="glass p-5" style="border-radius:var(--radius-md);">
       <h2 class="text-sm font-semibold mb-3" style="color:#2e4e61;">Differentiation</h2>
       {% set diff = data.get('differentiation', {}) %}
-      {% if diff %}
       <div class="space-y-2">
         <div class="flex items-start gap-2">
-          <span class="text-xs font-semibold px-2 py-0.5 rounded flex-shrink-0 mt-0.5" style="background:rgba(34,197,94,0.1);color:#16a34a;">Support</span>
-          <p class="text-sm" style="color:#40657b;">{{ diff.get('support', '') }}</p>
+          <span class="text-xs font-semibold px-2 py-0.5 rounded flex-shrink-0 mt-0.5"
+                style="background:rgba(34,197,94,0.1);color:#16a34a;">Support</span>
+          <p class="text-sm flex-1" style="color:#40657b;"
+             contenteditable="true" data-field="diff-support">{{ diff.get('support', '') }}</p>
         </div>
         <div class="flex items-start gap-2">
-          <span class="text-xs font-semibold px-2 py-0.5 rounded flex-shrink-0 mt-0.5" style="background:rgba(168,85,247,0.1);color:#9333ea;">Extension</span>
-          <p class="text-sm" style="color:#40657b;">{{ diff.get('extension', '') }}</p>
+          <span class="text-xs font-semibold px-2 py-0.5 rounded flex-shrink-0 mt-0.5"
+                style="background:rgba(168,85,247,0.1);color:#9333ea;">Extension</span>
+          <p class="text-sm flex-1" style="color:#40657b;"
+             contenteditable="true" data-field="diff-extension">{{ diff.get('extension', '') }}</p>
         </div>
       </div>
-      {% endif %}
     </div>
   </div>
 
   <!-- Assessment -->
-  {% if data.get('assessment') %}
   <div class="glass p-5 prose-section" style="border-radius:var(--radius-md);">
     <h2 class="text-sm font-semibold mb-2" style="color:#2e4e61;">Assessment</h2>
-    <p class="text-sm" style="color:#40657b;">{{ data.get('assessment') }}</p>
+    <p class="text-sm" style="color:#40657b;"
+       contenteditable="true" data-field="assessment">{{ data.get('assessment', '') }}</p>
   </div>
-  {% endif %}
 
 
 <!-- ═══════════════════════════════════════════════════════════════════════ -->
@@ -221,61 +529,99 @@
 
   {% if data.get('instructions') %}
   <div class="rounded-xl p-4 mb-5" style="background:rgba(95,156,179,0.1);border:1px solid rgba(95,156,179,0.2);">
-    <p class="text-sm" style="color:#40657b;"><strong>Instructions:</strong> {{ data.get('instructions') }}</p>
+    <p class="text-sm" style="color:#40657b;">
+      <strong>Instructions:</strong>
+      <span contenteditable="true" data-field="instructions">{{ data.get('instructions') }}</span>
+    </p>
   </div>
   {% endif %}
 
-  {% if data.get('formula_box') %}
   <div class="glass p-5 mb-5 prose-section" style="border-radius:var(--radius-md);border-left:4px solid #5f9cb3;">
     <p class="text-xs font-semibold uppercase tracking-wider mb-2" style="color:#5f9cb3;">Key Formula</p>
-    <p class="font-mono text-sm font-semibold" style="color:#2e4e61;">{{ data.get('formula_box') }}</p>
+    <p class="font-mono text-sm font-semibold" style="color:#2e4e61;"
+       contenteditable="true" data-field="formula_box">{{ data.get('formula_box', '') }}</p>
   </div>
-  {% endif %}
 
   {% if data.get('worked_example') %}
   {% set we = data.get('worked_example') %}
   <div class="glass p-5 mb-5 prose-section" style="border-radius:var(--radius-md);border-left:4px solid #40657b;">
     <p class="text-xs font-semibold uppercase tracking-wider mb-2" style="color:#40657b;">Worked Example</p>
-    <p class="text-sm font-semibold mb-3" style="color:#2e4e61;">{{ we.get('question', '') }}</p>
-    <ol class="space-y-1.5">
+    <p class="text-sm font-semibold mb-3" style="color:#2e4e61;"
+       contenteditable="true" data-field="worked-example-question">{{ we.get('question', '') }}</p>
+    <ol class="space-y-1.5" id="worked-example-steps">
       {% for step in we.get('steps', []) %}
-      <li class="text-sm flex gap-2" style="color:#40657b;">
-        <span class="font-semibold flex-shrink-0" style="color:#5f9cb3;">{{ loop.index }}.</span>
-        {{ step }}
+      <li class="draggable-item" draggable="true" data-type="we-step">
+        <span class="drag-handle mt-0.5">{% for i in range(6) %}<span></span>{% endfor %}</span>
+        <div class="item-body text-sm flex gap-2" style="color:#40657b;">
+          <span class="font-semibold flex-shrink-0" style="color:#5f9cb3;">{{ loop.index }}.</span>
+          <span contenteditable="true" data-field="we-step">{{ step }}</span>
+        </div>
+        <button class="btn-delete-section" onclick="deleteItem(this)" title="Delete step">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
       </li>
       {% endfor %}
     </ol>
+    <button class="btn-add-item" onclick="addWeStep()">+ Add step</button>
   </div>
   {% endif %}
 
-  {% for section in data.get('sections', []) %}
-  <div class="glass p-6 mb-4 prose-section" style="border-radius:var(--radius-lg);">
-    <div class="mb-4">
-      <h2 class="font-semibold" style="color:#2e4e61;">{{ section.get('title', '') }}</h2>
-      {% if section.get('instructions') %}
-      <p class="text-xs mt-1" style="color:#5f9cb3;">{{ section.get('instructions') }}</p>
-      {% endif %}
-    </div>
-    <div class="space-y-5">
-      {% for q in section.get('questions', []) %}
-      <div class="pb-4 last:pb-0" style="border-bottom:1px solid rgba(95,156,179,0.1);">
-        <div class="flex items-start justify-between gap-3 mb-2">
-          <p class="text-sm" style="color:#2e4e61;">
-            <span class="font-semibold">Q{{ q.get('number', '') }}.</span>
-            {{ q.get('question', '') }}
-          </p>
-          <span class="text-xs px-2 py-0.5 rounded-full whitespace-nowrap flex-shrink-0" style="color:#5f9cb3;background:rgba(95,156,179,0.1);">
-            {{ q.get('marks', 1) }} mark{% if q.get('marks', 1) != 1 %}s{% endif %}
-          </span>
+  <div id="worksheet-sections-list">
+    {% for section in data.get('sections', []) %}
+    <div class="draggable-section mb-4" draggable="true" data-type="worksheet-section">
+      <div class="section-drag-row">
+        <span class="drag-handle mt-5">{% for i in range(6) %}<span></span>{% endfor %}</span>
+        <div class="section-body glass p-6 prose-section" style="border-radius:var(--radius-lg);">
+          <div class="flex items-start justify-between gap-2 mb-4">
+            <div class="flex-1 min-w-0">
+              <h2 class="font-semibold" style="color:#2e4e61;"
+                  contenteditable="true" data-field="section-title">{{ section.get('title', '') }}</h2>
+              {% if section.get('instructions') %}
+              <p class="text-xs mt-1" style="color:#5f9cb3;"
+                 contenteditable="true" data-field="section-instructions">{{ section.get('instructions') }}</p>
+              {% endif %}
+            </div>
+            <button class="btn-delete-section mt-1" onclick="deleteSection(this)" title="Delete section">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+          <div class="space-y-5 questions-list">
+            {% for q in section.get('questions', []) %}
+            <div class="draggable-item pb-4 last:pb-0 question-wrapper" draggable="true"
+                 style="border-bottom:1px solid rgba(95,156,179,0.1);" data-type="question">
+              <span class="drag-handle mt-1">{% for i in range(6) %}<span></span>{% endfor %}</span>
+              <div class="item-body">
+                <div class="flex items-start justify-between gap-3 mb-2">
+                  <p class="text-sm flex-1" style="color:#2e4e61;">
+                    <span class="font-semibold">Q{{ q.get('number', loop.index) }}.</span>
+                    <span contenteditable="true" data-field="question-text">{{ q.get('question', '') }}</span>
+                  </p>
+                  <span class="text-xs px-2 py-0.5 rounded-full whitespace-nowrap flex-shrink-0"
+                        style="color:#5f9cb3;background:rgba(95,156,179,0.1);"
+                        contenteditable="true" data-field="question-marks">{{ q.get('marks', 1) }}</span>
+                </div>
+                {% set lines = q.get('working_space', q.get('answer_lines', 3)) %}
+                <div class="mt-3 rounded-lg" style="min-height:{{ lines * 28 }}px;border:1px dashed rgba(95,156,179,0.25);background:rgba(255,255,255,0.4);"></div>
+              </div>
+              <button class="btn-delete-section mt-1" onclick="deleteItem(this)" title="Delete question">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+              </button>
+            </div>
+            {% endfor %}
+          </div>
+          <button class="btn-add-item" onclick="addQuestion(this)">+ Add question</button>
         </div>
-        <!-- Working space or answer lines -->
-        {% set lines = q.get('working_space', q.get('answer_lines', 3)) %}
-        <div class="mt-3 rounded-lg" style="min-height:{{ lines * 28 }}px;border:1px dashed rgba(95,156,179,0.25);background:rgba(255,255,255,0.4);"></div>
       </div>
-      {% endfor %}
     </div>
+    {% endfor %}
   </div>
-  {% endfor %}
+  <button class="btn-add-section" onclick="addWorksheetSection()">+ Add section</button>
 
 
 <!-- ═══════════════════════════════════════════════════════════════════════ -->
@@ -283,62 +629,109 @@
 <!-- ═══════════════════════════════════════════════════════════════════════ -->
 {% elif resource.type == 'scheme' %}
 
-  {% if data.get('overview') %}
   <div class="glass p-5 mb-5" style="border-radius:var(--radius-md);">
-    <p class="text-sm" style="color:#40657b;">{{ data.get('overview') }}</p>
+    <p class="text-sm" style="color:#40657b;"
+       contenteditable="true" data-field="overview">{{ data.get('overview', '') }}</p>
   </div>
-  {% endif %}
 
-  <div class="space-y-4">
+  <div class="space-y-4" id="scheme-weeks-list">
     {% for week in data.get('weeks', []) %}
-    <div class="glass overflow-hidden prose-section" style="border-radius:var(--radius-lg);">
-      <!-- Week header -->
-      <div class="flex items-center justify-between px-5 py-3" style="background:rgba(95,156,179,0.08);border-bottom:1px solid rgba(95,156,179,0.12);">
-        <div class="flex items-center gap-3">
-          <span class="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold" style="background:rgba(95,156,179,0.15);color:#40657b;">
-            {{ week.get('week', '') }}
-          </span>
-          <h3 class="font-semibold text-sm" style="color:#2e4e61;">{{ week.get('topic', '') }}</h3>
-        </div>
-      </div>
-      <!-- Week body -->
-      <div class="p-5 grid md:grid-cols-4 gap-4 text-sm">
-        <div>
-          <p class="text-xs font-semibold uppercase tracking-wider mb-2" style="color:#5f9cb3;opacity:0.7;">Objectives</p>
-          <ul class="space-y-1">
-            {% for obj in week.get('objectives', []) %}
-            <li class="flex items-start gap-1.5" style="color:#40657b;">
-              <span class="w-1 h-1 rounded-full flex-shrink-0 mt-1.5" style="background:#5f9cb3;"></span>{{ obj }}
-            </li>
-            {% endfor %}
-          </ul>
-        </div>
-        <div>
-          <p class="text-xs font-semibold uppercase tracking-wider mb-2" style="color:#5f9cb3;opacity:0.7;">Key Activities</p>
-          <ul class="space-y-1">
-            {% for act in week.get('key_activities', []) %}
-            <li class="flex items-start gap-1.5" style="color:#40657b;">
-              <span class="w-1 h-1 rounded-full flex-shrink-0 mt-1.5" style="background:#22c55e;"></span>{{ act }}
-            </li>
-            {% endfor %}
-          </ul>
-        </div>
-        <div>
-          <p class="text-xs font-semibold uppercase tracking-wider mb-2" style="color:#5f9cb3;opacity:0.7;">Resources</p>
-          <ul class="space-y-1">
-            {% for res in week.get('resources', []) %}
-            <li class="text-xs" style="color:#5f9cb3;">{{ res }}</li>
-            {% endfor %}
-          </ul>
-        </div>
-        <div>
-          <p class="text-xs font-semibold uppercase tracking-wider mb-2" style="color:#5f9cb3;opacity:0.7;">Assessment</p>
-          <p class="text-xs" style="color:#40657b;">{{ week.get('assessment', '') }}</p>
+    <div class="draggable-section glass overflow-hidden prose-section" draggable="true"
+         style="border-radius:var(--radius-lg);" data-type="scheme-week">
+      <div class="section-drag-row">
+        <span class="drag-handle" style="margin-top:0.75rem;">{% for i in range(6) %}<span></span>{% endfor %}</span>
+        <div class="section-body">
+          <!-- Week header -->
+          <div class="flex items-center justify-between px-5 py-3"
+               style="background:rgba(95,156,179,0.08);border-bottom:1px solid rgba(95,156,179,0.12);">
+            <div class="flex items-center gap-3">
+              <span class="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold"
+                    style="background:rgba(95,156,179,0.15);color:#40657b;"
+                    contenteditable="true" data-field="week-number">{{ week.get('week', '') }}</span>
+              <h3 class="font-semibold text-sm" style="color:#2e4e61;"
+                  contenteditable="true" data-field="week-topic">{{ week.get('topic', '') }}</h3>
+            </div>
+            <button class="btn-delete-section" onclick="deleteSection(this)" title="Delete week">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+          <!-- Week body -->
+          <div class="p-5 grid md:grid-cols-4 gap-4 text-sm">
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-wider mb-2" style="color:#5f9cb3;opacity:0.7;">Objectives</p>
+              <ul class="space-y-1 week-objectives">
+                {% for obj in week.get('objectives', []) %}
+                <li class="draggable-item" draggable="true" data-type="week-obj">
+                  <span class="drag-handle" style="margin-top:2px;">{% for i in range(6) %}<span></span>{% endfor %}</span>
+                  <div class="item-body flex items-start gap-1.5" style="color:#40657b;">
+                    <span class="w-1 h-1 rounded-full flex-shrink-0 mt-1.5" style="background:#5f9cb3;"></span>
+                    <span contenteditable="true" data-field="week-obj">{{ obj }}</span>
+                  </div>
+                  <button class="btn-delete-section" onclick="deleteItem(this)" title="Delete">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                  </button>
+                </li>
+                {% endfor %}
+              </ul>
+              <button class="btn-add-item" style="font-size:0.65rem;padding:0.2rem 0.5rem;"
+                      onclick="addWeekListItem(this,'week-objectives','week-obj','New objective')">+</button>
+            </div>
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-wider mb-2" style="color:#5f9cb3;opacity:0.7;">Key Activities</p>
+              <ul class="space-y-1 week-activities">
+                {% for act in week.get('key_activities', []) %}
+                <li class="draggable-item" draggable="true" data-type="week-act">
+                  <span class="drag-handle" style="margin-top:2px;">{% for i in range(6) %}<span></span>{% endfor %}</span>
+                  <div class="item-body flex items-start gap-1.5" style="color:#40657b;">
+                    <span class="w-1 h-1 rounded-full flex-shrink-0 mt-1.5" style="background:#22c55e;"></span>
+                    <span contenteditable="true" data-field="week-act">{{ act }}</span>
+                  </div>
+                  <button class="btn-delete-section" onclick="deleteItem(this)" title="Delete">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                  </button>
+                </li>
+                {% endfor %}
+              </ul>
+              <button class="btn-add-item" style="font-size:0.65rem;padding:0.2rem 0.5rem;"
+                      onclick="addWeekListItem(this,'week-activities','week-act','New activity')">+</button>
+            </div>
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-wider mb-2" style="color:#5f9cb3;opacity:0.7;">Resources</p>
+              <ul class="space-y-1 week-resources">
+                {% for res in week.get('resources', []) %}
+                <li class="draggable-item" draggable="true" data-type="week-res">
+                  <span class="drag-handle" style="margin-top:2px;">{% for i in range(6) %}<span></span>{% endfor %}</span>
+                  <span class="text-xs flex-1" style="color:#5f9cb3;"
+                        contenteditable="true" data-field="week-res">{{ res }}</span>
+                  <button class="btn-delete-section" onclick="deleteItem(this)" title="Delete">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                  </button>
+                </li>
+                {% endfor %}
+              </ul>
+              <button class="btn-add-item" style="font-size:0.65rem;padding:0.2rem 0.5rem;"
+                      onclick="addWeekListItem(this,'week-resources','week-res','New resource')">+</button>
+            </div>
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-wider mb-2" style="color:#5f9cb3;opacity:0.7;">Assessment</p>
+              <p class="text-xs" style="color:#40657b;"
+                 contenteditable="true" data-field="week-assessment">{{ week.get('assessment', '') }}</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
     {% endfor %}
   </div>
+  <button class="btn-add-section" onclick="addSchemeWeek()">+ Add week</button>
 
 
 <!-- ═══════════════════════════════════════════════════════════════════════ -->
@@ -346,46 +739,809 @@
 <!-- ═══════════════════════════════════════════════════════════════════════ -->
 {% elif resource.type == 'slides' %}
 
-  <div class="grid md:grid-cols-2 gap-4">
+  <div class="grid md:grid-cols-2 gap-4" id="slides-list">
     {% for slide in data.get('slides', []) %}
-    <div class="glass overflow-hidden prose-section" style="border-radius:var(--radius-lg);">
-      <!-- Slide header -->
-      <div class="flex items-center justify-between px-4 py-2.5" style="background:rgba(95,156,179,0.08);border-bottom:1px solid rgba(95,156,179,0.1);">
-        <div class="flex items-center gap-2">
-          <span class="w-6 h-6 rounded text-xs font-bold flex items-center justify-center" style="background:rgba(95,156,179,0.15);color:#40657b;">
-            {{ slide.get('number', '') }}
-          </span>
-          <span class="text-xs font-medium uppercase tracking-wide" style="color:#5f9cb3;">
-            {{ slide.get('content_type', 'content') }}
-          </span>
+    <div class="draggable-section glass overflow-hidden prose-section" draggable="true"
+         style="border-radius:var(--radius-lg);" data-type="slide">
+      <div class="section-drag-row h-full">
+        <span class="drag-handle" style="margin-top:0.75rem;">{% for i in range(6) %}<span></span>{% endfor %}</span>
+        <div class="section-body flex flex-col">
+          <!-- Slide header -->
+          <div class="flex items-center justify-between px-4 py-2.5"
+               style="background:rgba(95,156,179,0.08);border-bottom:1px solid rgba(95,156,179,0.1);">
+            <div class="flex items-center gap-2">
+              <span class="w-6 h-6 rounded text-xs font-bold flex items-center justify-center"
+                    style="background:rgba(95,156,179,0.15);color:#40657b;"
+                    contenteditable="true" data-field="slide-number">{{ slide.get('number', '') }}</span>
+              <span class="text-xs font-medium uppercase tracking-wide" style="color:#5f9cb3;"
+                    contenteditable="true" data-field="slide-content-type">{{ slide.get('content_type', 'content') }}</span>
+            </div>
+            <button class="btn-delete-section" onclick="deleteSection(this)" title="Delete slide">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+          <!-- Slide body -->
+          <div class="p-4 flex-1">
+            <h3 class="font-semibold text-sm mb-2" style="color:#2e4e61;"
+                contenteditable="true" data-field="slide-title">{{ slide.get('title', '') }}</h3>
+            <ul class="space-y-1 mb-3 slide-bullets">
+              {% for bullet in slide.get('bullet_points', []) %}
+              <li class="draggable-item" draggable="true" data-type="slide-bullet">
+                <span class="drag-handle" style="margin-top:4px;">{% for i in range(6) %}<span></span>{% endfor %}</span>
+                <div class="item-body flex items-start gap-2 text-sm" style="color:#40657b;">
+                  <span class="w-1 h-1 rounded-full flex-shrink-0 mt-1.5" style="background:#5f9cb3;"></span>
+                  <span contenteditable="true" data-field="slide-bullet">{{ bullet }}</span>
+                </div>
+                <button class="btn-delete-section" onclick="deleteItem(this)" title="Delete bullet">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                  </svg>
+                </button>
+              </li>
+              {% endfor %}
+            </ul>
+            <button class="btn-add-item" onclick="addSlideBullet(this)">+ Add bullet</button>
+            <div class="mt-2 pt-2" style="border-top:1px solid rgba(95,156,179,0.1);">
+              <p class="text-xs italic" style="color:rgba(95,156,179,0.7);">
+                <span class="font-medium not-italic" style="color:#5f9cb3;">Notes:</span>
+                <span contenteditable="true" data-field="slide-notes">{{ slide.get('speaker_notes', '') }}</span>
+              </p>
+            </div>
+          </div>
         </div>
-      </div>
-      <!-- Slide body -->
-      <div class="p-4">
-        <h3 class="font-semibold text-sm mb-2" style="color:#2e4e61;">{{ slide.get('title', '') }}</h3>
-        {% if slide.get('bullet_points') %}
-        <ul class="space-y-1 mb-3">
-          {% for bullet in slide.get('bullet_points', []) %}
-          <li class="flex items-start gap-2 text-sm" style="color:#40657b;">
-            <span class="w-1 h-1 rounded-full flex-shrink-0 mt-1.5" style="background:#5f9cb3;"></span>
-            {{ bullet }}
-          </li>
-          {% endfor %}
-        </ul>
-        {% endif %}
-        {% if slide.get('speaker_notes') %}
-        <div class="mt-2 pt-2" style="border-top:1px solid rgba(95,156,179,0.1);">
-          <p class="text-xs italic" style="color:rgba(95,156,179,0.7);">
-            <span class="font-medium not-italic" style="color:#5f9cb3;">Notes:</span>
-            {{ slide.get('speaker_notes') }}
-          </p>
-        </div>
-        {% endif %}
       </div>
     </div>
     {% endfor %}
   </div>
+  <button class="btn-add-section" onclick="addSlide()">+ Add slide</button>
 
 {% endif %}
 
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- Version history drawer                                                   -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div id="history-drawer">
+  <div id="history-drawer-header">
+    <span class="font-semibold text-sm" style="color:#2e4e61;">Version History</span>
+    <button onclick="toggleHistory()" style="color:#5f9cb3;background:none;border:none;cursor:pointer;font-size:1.2rem;line-height:1;">&#215;</button>
+  </div>
+  <div id="history-list">
+    <p class="text-xs text-center" style="color:rgba(95,156,179,0.5);padding:1rem;">Loading…</p>
+  </div>
+</div>
+<div id="history-overlay"
+     onclick="toggleHistory()"
+     style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.15);z-index:199;"></div>
+
+{% endblock %}
+
+
+{% block scripts %}
+<script>
+  // ── State ──────────────────────────────────────────────────────────────
+  const RESOURCE_ID = {{ resource.id }};
+  const RESOURCE_TYPE = {{ resource.type | tojson }};
+  let isDirty = false;
+  let autoSaveTimer = null;
+  let lastSavedAt = null;
+
+  // ── Dirty tracking ─────────────────────────────────────────────────────
+  function markDirty() {
+    if (!isDirty) {
+      isDirty = true;
+      const badge = document.getElementById('dirty-badge');
+      badge.className = 'dirty';
+      badge.textContent = '● Unsaved changes';
+    }
+  }
+
+  function markSaved() {
+    isDirty = false;
+    lastSavedAt = new Date();
+    const badge = document.getElementById('dirty-badge');
+    badge.className = 'saved';
+    badge.textContent = '✓ Saved';
+    updateLastSavedText();
+    setTimeout(() => {
+      badge.style.opacity = '0';
+      badge.style.transition = 'opacity 1s';
+      setTimeout(() => {
+        badge.className = '';
+        badge.textContent = '';
+        badge.style.opacity = '';
+        badge.style.transition = '';
+      }, 1000);
+    }, 2500);
+  }
+
+  function updateLastSavedText() {
+    if (!lastSavedAt) return;
+    const el = document.getElementById('last-saved-text');
+    const diff = Math.round((Date.now() - lastSavedAt) / 60000);
+    el.textContent = diff < 1 ? 'Last saved: just now' : `Last saved: ${diff} min${diff === 1 ? '' : 's'} ago`;
+  }
+
+  // Attach dirty listeners to all contenteditable elements
+  document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('input', (e) => {
+      if (e.target.isContentEditable) markDirty();
+    });
+
+    // Auto-save every 60 s
+    autoSaveTimer = setInterval(() => {
+      if (isDirty) saveResource('Auto-save');
+    }, 60000);
+
+    // Update "last saved" display every 30 s
+    setInterval(updateLastSavedText, 30000);
+
+    // Initialise drag and drop
+    initDragDrop();
+  });
+
+  // ── DOM → JSON serialisation ───────────────────────────────────────────
+  function getText(el) {
+    return el ? el.textContent.trim() : '';
+  }
+
+  function readCurrentState() {
+    if (RESOURCE_TYPE === 'lesson') return readLesson();
+    if (RESOURCE_TYPE === 'worksheet') return readWorksheet();
+    if (RESOURCE_TYPE === 'scheme') return readScheme();
+    if (RESOURCE_TYPE === 'slides') return readSlides();
+    return {};
+  }
+
+  function readLesson() {
+    const out = {};
+
+    // Title
+    const titleEl = document.querySelector('[data-field="title"]');
+    if (titleEl) out.title = getText(titleEl);
+
+    // Learning objectives
+    out.learning_objectives = [];
+    document.querySelectorAll('#objectives-list [data-field="objective"]').forEach(el => {
+      const t = getText(el);
+      if (t) out.learning_objectives.push(t);
+    });
+
+    // Sections
+    out.sections = [];
+    document.querySelectorAll('#lesson-sections-list [data-type="lesson-section"]').forEach(sec => {
+      out.sections.push({
+        title: getText(sec.querySelector('[data-field="section-title"]')),
+        duration: getText(sec.querySelector('[data-field="section-duration"]')),
+        activity: getText(sec.querySelector('[data-field="section-activity"]')),
+        teacher_notes: getText(sec.querySelector('[data-field="section-notes"]')),
+      });
+    });
+
+    // Resources needed
+    out.resources_needed = [];
+    document.querySelectorAll('#resources-needed-list [data-field="resource-needed"]').forEach(el => {
+      const t = getText(el);
+      if (t) out.resources_needed.push(t);
+    });
+
+    // Differentiation
+    out.differentiation = {
+      support: getText(document.querySelector('[data-field="diff-support"]')),
+      extension: getText(document.querySelector('[data-field="diff-extension"]')),
+    };
+
+    // Assessment
+    out.assessment = getText(document.querySelector('[data-field="assessment"]'));
+
+    return out;
+  }
+
+  function readWorksheet() {
+    const out = {};
+    const titleEl = document.querySelector('[data-field="title"]');
+    if (titleEl) out.title = getText(titleEl);
+
+    const instrEl = document.querySelector('[data-field="instructions"]');
+    if (instrEl) out.instructions = getText(instrEl);
+
+    const formulaEl = document.querySelector('[data-field="formula_box"]');
+    if (formulaEl) out.formula_box = getText(formulaEl);
+
+    // Worked example
+    const weQ = document.querySelector('[data-field="worked-example-question"]');
+    if (weQ) {
+      const steps = [];
+      document.querySelectorAll('#worked-example-steps [data-field="we-step"]').forEach(el => {
+        const t = getText(el);
+        if (t) steps.push(t);
+      });
+      out.worked_example = { question: getText(weQ), steps };
+    }
+
+    // Sections
+    out.sections = [];
+    document.querySelectorAll('#worksheet-sections-list [data-type="worksheet-section"]').forEach((sec, si) => {
+      const questions = [];
+      sec.querySelectorAll('[data-type="question"]').forEach((q, qi) => {
+        questions.push({
+          number: qi + 1,
+          question: getText(q.querySelector('[data-field="question-text"]')),
+          marks: parseInt(getText(q.querySelector('[data-field="question-marks"]'))) || 1,
+          answer_lines: 3,
+        });
+      });
+      out.sections.push({
+        title: getText(sec.querySelector('[data-field="section-title"]')),
+        instructions: getText(sec.querySelector('[data-field="section-instructions"]')),
+        questions,
+      });
+    });
+
+    return out;
+  }
+
+  function readScheme() {
+    const out = {};
+    const titleEl = document.querySelector('[data-field="title"]');
+    if (titleEl) out.title = getText(titleEl);
+
+    const overviewEl = document.querySelector('[data-field="overview"]');
+    if (overviewEl) out.overview = getText(overviewEl);
+
+    out.weeks = [];
+    document.querySelectorAll('#scheme-weeks-list [data-type="scheme-week"]').forEach(weekEl => {
+      const objectives = [];
+      weekEl.querySelectorAll('.week-objectives [data-field="week-obj"]').forEach(el => {
+        const t = getText(el); if (t) objectives.push(t);
+      });
+      const key_activities = [];
+      weekEl.querySelectorAll('.week-activities [data-field="week-act"]').forEach(el => {
+        const t = getText(el); if (t) key_activities.push(t);
+      });
+      const resources = [];
+      weekEl.querySelectorAll('.week-resources [data-field="week-res"]').forEach(el => {
+        const t = getText(el); if (t) resources.push(t);
+      });
+      out.weeks.push({
+        week: getText(weekEl.querySelector('[data-field="week-number"]')),
+        topic: getText(weekEl.querySelector('[data-field="week-topic"]')),
+        objectives,
+        key_activities,
+        resources,
+        assessment: getText(weekEl.querySelector('[data-field="week-assessment"]')),
+      });
+    });
+
+    return out;
+  }
+
+  function readSlides() {
+    const out = {};
+    const titleEl = document.querySelector('[data-field="title"]');
+    if (titleEl) out.title = getText(titleEl);
+
+    out.slides = [];
+    document.querySelectorAll('#slides-list [data-type="slide"]').forEach((slideEl, idx) => {
+      const bullet_points = [];
+      slideEl.querySelectorAll('.slide-bullets [data-field="slide-bullet"]').forEach(el => {
+        const t = getText(el); if (t) bullet_points.push(t);
+      });
+      out.slides.push({
+        number: idx + 1,
+        content_type: getText(slideEl.querySelector('[data-field="slide-content-type"]')),
+        title: getText(slideEl.querySelector('[data-field="slide-title"]')),
+        bullet_points,
+        speaker_notes: getText(slideEl.querySelector('[data-field="slide-notes"]')),
+      });
+    });
+
+    return out;
+  }
+
+  // ── Save ───────────────────────────────────────────────────────────────
+  async function saveResource(label) {
+    const state = readCurrentState();
+    const titleEl = document.querySelector('[data-field="title"]');
+    const title = titleEl ? getText(titleEl) : null;
+
+    const timestamp = new Date().toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'});
+    const fullLabel = label === 'Auto-save' ? 'Auto-save' : `Manual save – ${timestamp}`;
+
+    try {
+      const resp = await fetch(`/resources/${RESOURCE_ID}`, {
+        method: 'PATCH',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          structured_output: JSON.stringify(state),
+          title: title,
+          label: fullLabel,
+        }),
+      });
+      if (!resp.ok) throw new Error('Save failed');
+      markSaved();
+      if (historyOpen) loadVersions();
+    } catch (err) {
+      console.error('Save error', err);
+      alert('Save failed. Please try again.');
+    }
+  }
+
+  // ── Version history ────────────────────────────────────────────────────
+  let historyOpen = false;
+
+  function toggleHistory() {
+    historyOpen = !historyOpen;
+    document.getElementById('history-drawer').classList.toggle('open', historyOpen);
+    document.getElementById('history-overlay').style.display = historyOpen ? 'block' : 'none';
+    if (historyOpen) loadVersions();
+  }
+
+  async function loadVersions() {
+    const list = document.getElementById('history-list');
+    list.innerHTML = '<p class="text-xs text-center" style="color:rgba(95,156,179,0.5);padding:1rem;">Loading…</p>';
+    try {
+      const resp = await fetch(`/resources/${RESOURCE_ID}/versions`);
+      const versions = await resp.json();
+      if (!versions.length) {
+        list.innerHTML = '<p class="text-xs text-center" style="color:rgba(95,156,179,0.5);padding:1rem;">No versions yet.</p>';
+        return;
+      }
+      list.innerHTML = '';
+      versions.forEach(v => {
+        const dt = v.created_at ? new Date(v.created_at).toLocaleString('en-GB', {
+          day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'
+        }) : '';
+        const item = document.createElement('div');
+        item.className = 'version-item';
+        item.innerHTML = `
+          <div style="flex:1;min-width:0;">
+            <div class="version-label">${escHtml(v.label)}</div>
+            <div class="version-meta">${dt}</div>
+          </div>
+          <button class="btn-restore" onclick="restoreVersion(${v.id})">Restore</button>
+        `;
+        list.appendChild(item);
+      });
+    } catch (err) {
+      list.innerHTML = '<p class="text-xs text-center" style="color:#dc2626;padding:1rem;">Failed to load.</p>';
+    }
+  }
+
+  async function restoreVersion(versionId) {
+    if (!confirm('Restore this version? Your current state will be saved first.')) return;
+    try {
+      const resp = await fetch(`/resources/${RESOURCE_ID}/versions/${versionId}/restore`, {method:'POST'});
+      if (!resp.ok) throw new Error('Restore failed');
+      window.location.reload();
+    } catch (err) {
+      alert('Restore failed. Please try again.');
+    }
+  }
+
+  function escHtml(str) {
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+  }
+
+  // ── Drag and drop ──────────────────────────────────────────────────────
+  function initDragDrop() {
+    // Re-attach listeners after DOM changes using event delegation on document
+    document.addEventListener('dragstart', onDragStart);
+    document.addEventListener('dragend', onDragEnd);
+    document.addEventListener('dragover', onDragOver);
+    document.addEventListener('dragleave', onDragLeave);
+    document.addEventListener('drop', onDrop);
+  }
+
+  let dragSrc = null;
+
+  function onDragStart(e) {
+    const el = e.target.closest('[draggable="true"]');
+    if (!el) return;
+    // Only drag if handle was grabbed
+    if (!e.target.closest('.drag-handle') && !e.target.classList.contains('drag-handle')) {
+      e.preventDefault();
+      return;
+    }
+    dragSrc = el;
+    e.dataTransfer.effectAllowed = 'move';
+    setTimeout(() => el.classList.add('dragging'), 0);
+  }
+
+  function onDragEnd(e) {
+    if (dragSrc) dragSrc.classList.remove('dragging');
+    document.querySelectorAll('.drag-over-top, .drag-over-bottom').forEach(el => {
+      el.classList.remove('drag-over-top', 'drag-over-bottom');
+    });
+    dragSrc = null;
+  }
+
+  function onDragOver(e) {
+    if (!dragSrc) return;
+    const target = e.target.closest('[draggable="true"]');
+    if (!target || target === dragSrc) return;
+    // Only allow if same parent
+    if (target.parentElement !== dragSrc.parentElement) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    target.classList.remove('drag-over-top', 'drag-over-bottom');
+    const rect = target.getBoundingClientRect();
+    const mid = rect.top + rect.height / 2;
+    if (e.clientY < mid) {
+      target.classList.add('drag-over-top');
+    } else {
+      target.classList.add('drag-over-bottom');
+    }
+  }
+
+  function onDragLeave(e) {
+    const target = e.target.closest('[draggable="true"]');
+    if (target) {
+      target.classList.remove('drag-over-top', 'drag-over-bottom');
+    }
+  }
+
+  function onDrop(e) {
+    if (!dragSrc) return;
+    const target = e.target.closest('[draggable="true"]');
+    if (!target || target === dragSrc) return;
+    if (target.parentElement !== dragSrc.parentElement) return;
+    e.preventDefault();
+
+    const parent = target.parentElement;
+    const isTop = target.classList.contains('drag-over-top');
+    target.classList.remove('drag-over-top', 'drag-over-bottom');
+
+    if (isTop) {
+      parent.insertBefore(dragSrc, target);
+    } else {
+      parent.insertBefore(dragSrc, target.nextSibling);
+    }
+    markDirty();
+  }
+
+  // ── Add / Delete helpers ───────────────────────────────────────────────
+
+  function makeDragHandle() {
+    const h = document.createElement('span');
+    h.className = 'drag-handle';
+    for (let i = 0; i < 6; i++) h.appendChild(document.createElement('span'));
+    return h;
+  }
+
+  function makeDeleteBtn(onclick) {
+    const btn = document.createElement('button');
+    btn.className = 'btn-delete-section';
+    btn.title = 'Delete';
+    btn.innerHTML = `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>`;
+    btn.onclick = onclick;
+    return btn;
+  }
+
+  function deleteSection(btn) {
+    const section = btn.closest('.draggable-section');
+    if (section) { section.remove(); markDirty(); }
+  }
+
+  function deleteItem(btn) {
+    const item = btn.closest('.draggable-item');
+    if (item) { item.remove(); markDirty(); }
+  }
+
+  // ── Lesson helpers ─────────────────────────────────────────────────────
+
+  function addObjective() {
+    const list = document.getElementById('objectives-list');
+    const li = document.createElement('li');
+    li.className = 'draggable-item';
+    li.draggable = true;
+    li.dataset.type = 'objective';
+    li.innerHTML = `
+      <span class="drag-handle mt-0.5">${'<span></span>'.repeat(6)}</span>
+      <div class="item-body flex items-start gap-2 text-sm" style="color:#40657b;">
+        <svg class="w-4 h-4 mt-0.5 flex-shrink-0" style="color:#5f9cb3;" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+        </svg>
+        <span contenteditable="true" data-field="objective">New objective</span>
+      </div>`;
+    li.appendChild(makeDeleteBtn(function(){ deleteItem(this); }));
+    list.appendChild(li);
+    markDirty();
+    li.querySelector('[contenteditable]').focus();
+  }
+
+  function addLessonSection() {
+    const list = document.getElementById('lesson-sections-list');
+    const div = document.createElement('div');
+    div.className = 'draggable-section';
+    div.draggable = true;
+    div.dataset.type = 'lesson-section';
+    div.innerHTML = `
+      <div class="section-drag-row">
+        <span class="drag-handle mt-4">${'<span></span>'.repeat(6)}</span>
+        <div class="section-body glass p-5 prose-section" style="border-radius:var(--radius-md);">
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-2 flex-1 min-w-0">
+              <h3 class="font-semibold text-sm" style="color:#2e4e61;"
+                  contenteditable="true" data-field="section-title">New section</h3>
+              <span class="text-xs px-2 py-0.5 rounded-full flex-shrink-0"
+                    style="color:#5f9cb3;background:rgba(95,156,179,0.1);"
+                    contenteditable="true" data-field="section-duration">10 min</span>
+            </div>
+            <button class="btn-delete-section" onclick="deleteSection(this)" title="Delete section">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+          <p class="text-sm mb-3" style="color:#40657b;"
+             contenteditable="true" data-field="section-activity">Describe the activity here.</p>
+          <div class="flex items-start gap-2 rounded-lg p-3" style="background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.2);">
+            <svg class="w-4 h-4 flex-shrink-0 mt-0.5" style="color:#d97706;" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+            </svg>
+            <p class="text-xs flex-1" style="color:#92400e;">
+              <strong>Teacher notes:</strong>
+              <span contenteditable="true" data-field="section-notes">Add notes here.</span>
+            </p>
+          </div>
+        </div>
+      </div>`;
+    list.appendChild(div);
+    markDirty();
+    div.querySelector('[data-field="section-title"]').focus();
+  }
+
+  function addListItem(listId, fieldName, defaultText) {
+    const list = document.getElementById(listId);
+    const li = document.createElement('li');
+    li.className = 'draggable-item';
+    li.draggable = true;
+    li.dataset.type = fieldName;
+    li.innerHTML = `
+      <span class="drag-handle mt-0.5">${'<span></span>'.repeat(6)}</span>
+      <div class="item-body flex items-center gap-2 text-sm" style="color:#40657b;">
+        <span class="w-1.5 h-1.5 rounded-full flex-shrink-0" style="background:#5f9cb3;"></span>
+        <span contenteditable="true" data-field="${fieldName}">${defaultText}</span>
+      </div>`;
+    li.appendChild(makeDeleteBtn(function(){ deleteItem(this); }));
+    list.appendChild(li);
+    markDirty();
+    li.querySelector('[contenteditable]').focus();
+  }
+
+  // ── Worksheet helpers ──────────────────────────────────────────────────
+
+  function addWeStep() {
+    const list = document.getElementById('worked-example-steps');
+    const idx = list.children.length + 1;
+    const li = document.createElement('li');
+    li.className = 'draggable-item';
+    li.draggable = true;
+    li.dataset.type = 'we-step';
+    li.innerHTML = `
+      <span class="drag-handle mt-0.5">${'<span></span>'.repeat(6)}</span>
+      <div class="item-body text-sm flex gap-2" style="color:#40657b;">
+        <span class="font-semibold flex-shrink-0" style="color:#5f9cb3;">${idx}.</span>
+        <span contenteditable="true" data-field="we-step">New step</span>
+      </div>`;
+    li.appendChild(makeDeleteBtn(function(){ deleteItem(this); }));
+    list.appendChild(li);
+    markDirty();
+    li.querySelector('[contenteditable]').focus();
+  }
+
+  function addQuestion(btn) {
+    const sectionEl = btn.closest('[data-type="worksheet-section"]');
+    const qList = sectionEl.querySelector('.questions-list');
+    const qNum = qList.querySelectorAll('[data-type="question"]').length + 1;
+    const div = document.createElement('div');
+    div.className = 'draggable-item pb-4 question-wrapper';
+    div.draggable = true;
+    div.dataset.type = 'question';
+    div.style.borderBottom = '1px solid rgba(95,156,179,0.1)';
+    div.innerHTML = `
+      <span class="drag-handle mt-1">${'<span></span>'.repeat(6)}</span>
+      <div class="item-body">
+        <div class="flex items-start justify-between gap-3 mb-2">
+          <p class="text-sm flex-1" style="color:#2e4e61;">
+            <span class="font-semibold">Q${qNum}.</span>
+            <span contenteditable="true" data-field="question-text">New question</span>
+          </p>
+          <span class="text-xs px-2 py-0.5 rounded-full whitespace-nowrap flex-shrink-0"
+                style="color:#5f9cb3;background:rgba(95,156,179,0.1);"
+                contenteditable="true" data-field="question-marks">1</span>
+        </div>
+        <div class="mt-3 rounded-lg" style="min-height:84px;border:1px dashed rgba(95,156,179,0.25);background:rgba(255,255,255,0.4);"></div>
+      </div>`;
+    div.appendChild(makeDeleteBtn(function(){ deleteItem(this); }));
+    qList.appendChild(div);
+    markDirty();
+    div.querySelector('[data-field="question-text"]').focus();
+  }
+
+  function addWorksheetSection() {
+    const list = document.getElementById('worksheet-sections-list');
+    const div = document.createElement('div');
+    div.className = 'draggable-section mb-4';
+    div.draggable = true;
+    div.dataset.type = 'worksheet-section';
+    div.innerHTML = `
+      <div class="section-drag-row">
+        <span class="drag-handle mt-5">${'<span></span>'.repeat(6)}</span>
+        <div class="section-body glass p-6 prose-section" style="border-radius:var(--radius-lg);">
+          <div class="flex items-start justify-between gap-2 mb-4">
+            <div class="flex-1 min-w-0">
+              <h2 class="font-semibold" style="color:#2e4e61;"
+                  contenteditable="true" data-field="section-title">New Section</h2>
+              <p class="text-xs mt-1" style="color:#5f9cb3;"
+                 contenteditable="true" data-field="section-instructions">Instructions for this section</p>
+            </div>
+            <button class="btn-delete-section mt-1" onclick="deleteSection(this)" title="Delete section">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+          <div class="space-y-5 questions-list"></div>
+          <button class="btn-add-item" onclick="addQuestion(this)">+ Add question</button>
+        </div>
+      </div>`;
+    list.appendChild(div);
+    markDirty();
+    div.querySelector('[data-field="section-title"]').focus();
+  }
+
+  // ── Scheme helpers ─────────────────────────────────────────────────────
+
+  function addWeekListItem(btn, listClass, fieldName, defaultText) {
+    const weekEl = btn.closest('[data-type="scheme-week"]');
+    const list = weekEl.querySelector('.' + listClass);
+    const li = document.createElement('li');
+    li.className = 'draggable-item';
+    li.draggable = true;
+    li.dataset.type = fieldName;
+    li.innerHTML = `
+      <span class="drag-handle" style="margin-top:2px;">${'<span></span>'.repeat(6)}</span>
+      <div class="item-body flex items-start gap-1.5" style="color:#40657b;">
+        <span class="w-1 h-1 rounded-full flex-shrink-0 mt-1.5" style="background:#5f9cb3;"></span>
+        <span contenteditable="true" data-field="${fieldName}">${defaultText}</span>
+      </div>`;
+    li.appendChild(makeDeleteBtn(function(){ deleteItem(this); }));
+    list.appendChild(li);
+    markDirty();
+    li.querySelector('[contenteditable]').focus();
+  }
+
+  function addSchemeWeek() {
+    const list = document.getElementById('scheme-weeks-list');
+    const wNum = list.querySelectorAll('[data-type="scheme-week"]').length + 1;
+    const div = document.createElement('div');
+    div.className = 'draggable-section glass overflow-hidden prose-section';
+    div.draggable = true;
+    div.dataset.type = 'scheme-week';
+    div.style.borderRadius = 'var(--radius-lg)';
+    div.innerHTML = `
+      <div class="section-drag-row">
+        <span class="drag-handle" style="margin-top:0.75rem;">${'<span></span>'.repeat(6)}</span>
+        <div class="section-body">
+          <div class="flex items-center justify-between px-5 py-3"
+               style="background:rgba(95,156,179,0.08);border-bottom:1px solid rgba(95,156,179,0.12);">
+            <div class="flex items-center gap-3">
+              <span class="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold"
+                    style="background:rgba(95,156,179,0.15);color:#40657b;"
+                    contenteditable="true" data-field="week-number">${wNum}</span>
+              <h3 class="font-semibold text-sm" style="color:#2e4e61;"
+                  contenteditable="true" data-field="week-topic">New Topic</h3>
+            </div>
+            <button class="btn-delete-section" onclick="deleteSection(this)" title="Delete week">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+          <div class="p-5 grid md:grid-cols-4 gap-4 text-sm">
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-wider mb-2" style="color:#5f9cb3;opacity:0.7;">Objectives</p>
+              <ul class="space-y-1 week-objectives"></ul>
+              <button class="btn-add-item" style="font-size:0.65rem;padding:0.2rem 0.5rem;"
+                      onclick="addWeekListItem(this,'week-objectives','week-obj','New objective')">+</button>
+            </div>
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-wider mb-2" style="color:#5f9cb3;opacity:0.7;">Key Activities</p>
+              <ul class="space-y-1 week-activities"></ul>
+              <button class="btn-add-item" style="font-size:0.65rem;padding:0.2rem 0.5rem;"
+                      onclick="addWeekListItem(this,'week-activities','week-act','New activity')">+</button>
+            </div>
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-wider mb-2" style="color:#5f9cb3;opacity:0.7;">Resources</p>
+              <ul class="space-y-1 week-resources"></ul>
+              <button class="btn-add-item" style="font-size:0.65rem;padding:0.2rem 0.5rem;"
+                      onclick="addWeekListItem(this,'week-resources','week-res','New resource')">+</button>
+            </div>
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-wider mb-2" style="color:#5f9cb3;opacity:0.7;">Assessment</p>
+              <p class="text-xs" style="color:#40657b;"
+                 contenteditable="true" data-field="week-assessment">Assessment method</p>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    list.appendChild(div);
+    markDirty();
+    div.querySelector('[data-field="week-topic"]').focus();
+  }
+
+  // ── Slides helpers ─────────────────────────────────────────────────────
+
+  function addSlideBullet(btn) {
+    const slideEl = btn.closest('[data-type="slide"]');
+    const bulletList = slideEl.querySelector('.slide-bullets');
+    const li = document.createElement('li');
+    li.className = 'draggable-item';
+    li.draggable = true;
+    li.dataset.type = 'slide-bullet';
+    li.innerHTML = `
+      <span class="drag-handle" style="margin-top:4px;">${'<span></span>'.repeat(6)}</span>
+      <div class="item-body flex items-start gap-2 text-sm" style="color:#40657b;">
+        <span class="w-1 h-1 rounded-full flex-shrink-0 mt-1.5" style="background:#5f9cb3;"></span>
+        <span contenteditable="true" data-field="slide-bullet">New bullet point</span>
+      </div>`;
+    li.appendChild(makeDeleteBtn(function(){ deleteItem(this); }));
+    bulletList.appendChild(li);
+    markDirty();
+    li.querySelector('[contenteditable]').focus();
+  }
+
+  function addSlide() {
+    const list = document.getElementById('slides-list');
+    const slideNum = list.querySelectorAll('[data-type="slide"]').length + 1;
+    const div = document.createElement('div');
+    div.className = 'draggable-section glass overflow-hidden prose-section';
+    div.draggable = true;
+    div.dataset.type = 'slide';
+    div.style.borderRadius = 'var(--radius-lg)';
+    div.innerHTML = `
+      <div class="section-drag-row h-full">
+        <span class="drag-handle" style="margin-top:0.75rem;">${'<span></span>'.repeat(6)}</span>
+        <div class="section-body flex flex-col">
+          <div class="flex items-center justify-between px-4 py-2.5"
+               style="background:rgba(95,156,179,0.08);border-bottom:1px solid rgba(95,156,179,0.1);">
+            <div class="flex items-center gap-2">
+              <span class="w-6 h-6 rounded text-xs font-bold flex items-center justify-center"
+                    style="background:rgba(95,156,179,0.15);color:#40657b;"
+                    contenteditable="true" data-field="slide-number">${slideNum}</span>
+              <span class="text-xs font-medium uppercase tracking-wide" style="color:#5f9cb3;"
+                    contenteditable="true" data-field="slide-content-type">content</span>
+            </div>
+            <button class="btn-delete-section" onclick="deleteSection(this)" title="Delete slide">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+          <div class="p-4 flex-1">
+            <h3 class="font-semibold text-sm mb-2" style="color:#2e4e61;"
+                contenteditable="true" data-field="slide-title">New Slide Title</h3>
+            <ul class="space-y-1 mb-3 slide-bullets"></ul>
+            <button class="btn-add-item" onclick="addSlideBullet(this)">+ Add bullet</button>
+            <div class="mt-2 pt-2" style="border-top:1px solid rgba(95,156,179,0.1);">
+              <p class="text-xs italic" style="color:rgba(95,156,179,0.7);">
+                <span class="font-medium not-italic" style="color:#5f9cb3;">Notes:</span>
+                <span contenteditable="true" data-field="slide-notes">Speaker notes here.</span>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    list.appendChild(div);
+    markDirty();
+    div.querySelector('[data-field="slide-title"]').focus();
+  }
+</script>
 {% endblock %}
